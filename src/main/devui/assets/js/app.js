@@ -88,7 +88,15 @@ document.addEventListener('DOMContentLoaded', function () {
     function renderDashboardRows(rows) {
         const filter = (filterInput.value || '').trim().toLowerCase();
         const filtered = rows.filter(function (row) {
-            const haystack = [row.sender, row.receiver, row.msgType, row.description, row.scheduleType].join(' ').toLowerCase();
+            const haystack = [
+                row.sender,
+                row.receiver,
+                row.msgType,
+                row.description,
+                row.scheduleType,
+                row.status,
+                row.message
+            ].join(' ').toLowerCase();
             return !filter || haystack.includes(filter);
         });
 
@@ -210,6 +218,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         await refreshAll();
+        alert('Regler importerade');
     }
 
     async function saveRule(event) {

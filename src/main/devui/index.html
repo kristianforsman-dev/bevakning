@@ -9,95 +9,168 @@
 <body>
 <div class="shell">
     <header class="hero">
-        <div>
+        <div class="hero-left">
             <div class="eyebrow">Integration Monitoring</div>
             <h1>Flödesbevakning</h1>
-            <p class="hero-text">Lokal dev-mode i Codespaces. Samma service-lager kan senare kopplas till WebSphere och Db2.</p>
+            <p class="hero-text">
+                Bevakning av inkommande och utgående flöden med regler, kvittering, historik och admin-stöd.
+            </p>
         </div>
-        <div class="hero-meta">
-            <div class="meta-label">Senast uppdaterad</div>
-            <div id="refreshedAt" class="meta-value">-</div>
+        <div class="hero-right">
+            <div class="hero-pill">
+                <span class="hero-pill-label">Senast uppdaterad</span>
+                <span id="refreshedAt" class="hero-pill-value">-</span>
+            </div>
         </div>
     </header>
 
     <section id="backendBanner" class="banner hidden"></section>
 
     <section class="stats-grid">
-        <article class="stat-card"><div class="stat-label">Totalt idag</div><div id="statTotal" class="stat-value">0</div></article>
-        <article class="stat-card ok"><div class="stat-label">OK</div><div id="statOk" class="stat-value">0</div></article>
-        <article class="stat-card info"><div class="stat-label">Info</div><div id="statInfo" class="stat-value">0</div></article>
-        <article class="stat-card warn"><div class="stat-label">Warning</div><div id="statWarning" class="stat-value">0</div></article>
-        <article class="stat-card error"><div class="stat-label">Error</div><div id="statError" class="stat-value">0</div></article>
+        <article class="stat-card total">
+            <div class="stat-label">Totalt idag</div>
+            <div id="statTotal" class="stat-value">0</div>
+        </article>
+        <article class="stat-card ok">
+            <div class="stat-label">OK</div>
+            <div id="statOk" class="stat-value">0</div>
+        </article>
+        <article class="stat-card info">
+            <div class="stat-label">Info</div>
+            <div id="statInfo" class="stat-value">0</div>
+        </article>
+        <article class="stat-card warn">
+            <div class="stat-label">Warning</div>
+            <div id="statWarning" class="stat-value">0</div>
+        </article>
+        <article class="stat-card error">
+            <div class="stat-label">Error</div>
+            <div id="statError" class="stat-value">0</div>
+        </article>
     </section>
 
-    <section class="panel">
+    <section class="panel panel-form">
         <div class="panel-header">
-            <h2>Ny bevakning</h2>
-            <button id="resetBtn" class="btn secondary" type="button">Rensa</button>
+            <div>
+                <h2>Bevakningsregel</h2>
+                <p class="panel-subtitle">Skapa eller uppdatera en regel för ett flöde.</p>
+            </div>
+            <button id="resetBtn" class="btn secondary" type="button">Rensa formulär</button>
         </div>
-        <form id="ruleForm" class="form-grid wide">
-            <input type="hidden" id="ruleId" name="id">
-            <label>Sender<input id="sender" name="sender" required></label>
-            <label>Receiver<input id="receiver" name="receiver" required></label>
-            <label>MsgType<input id="msgType" name="msgType" required></label>
-            <label>Beskrivning<input id="description" name="description"></label>
 
-            <label>Schedule type
+        <form id="ruleForm" class="form-grid">
+            <input type="hidden" id="ruleId" name="id">
+
+            <label>
+                <span>Sender</span>
+                <input id="sender" name="sender" required>
+            </label>
+
+            <label>
+                <span>Receiver</span>
+                <input id="receiver" name="receiver" required>
+            </label>
+
+            <label>
+                <span>MsgType</span>
+                <input id="msgType" name="msgType" required>
+            </label>
+
+            <label class="span-2">
+                <span>Beskrivning</span>
+                <input id="description" name="description">
+            </label>
+
+            <label>
+                <span>Schedule type</span>
                 <select id="scheduleType" name="scheduleType">
                     <option value="DAILY">DAILY</option>
                     <option value="MULTI_WINDOW">MULTI_WINDOW</option>
                 </select>
             </label>
 
-            <label>Min antal<input id="minExpected" name="minExpected" type="number" value="1" required></label>
-            <label>Max antal<input id="maxExpected" name="maxExpected" type="number" value="1" required></label>
-            <label>Deadline<input id="deadline" name="deadline" type="time" value="15:00" required></label>
-            <label>Varning min före deadline<input id="warningMinutesBeforeDeadline" name="warningMinutesBeforeDeadline" type="number" value="60" required></label>
-
-            <label>Aktiv
+            <label>
+                <span>Aktiv</span>
                 <select id="active" name="active">
                     <option value="true" selected>true</option>
                     <option value="false">false</option>
                 </select>
             </label>
 
-            <label>Weekdays
+            <label>
+                <span>Min antal</span>
+                <input id="minExpected" name="minExpected" type="number" value="1" required>
+            </label>
+
+            <label>
+                <span>Max antal</span>
+                <input id="maxExpected" name="maxExpected" type="number" value="1" required>
+            </label>
+
+            <label>
+                <span>Deadline</span>
+                <input id="deadline" name="deadline" type="time" value="15:00" required>
+            </label>
+
+            <label>
+                <span>Varning min före deadline</span>
+                <input id="warningMinutesBeforeDeadline" name="warningMinutesBeforeDeadline" type="number" value="60" required>
+            </label>
+
+            <label class="span-2">
+                <span>Weekdays</span>
                 <input id="weekdays" name="weekdays" placeholder="MON,TUE,WED,THU,FRI">
             </label>
 
-            <label>Month days
+            <label>
+                <span>Month days</span>
                 <input id="monthDays" name="monthDays" placeholder="15,25">
             </label>
 
-            <label>Specific dates
+            <label class="span-2">
+                <span>Specific dates</span>
                 <input id="specificDates" name="specificDates" placeholder="2026-03-31,2026-04-30">
             </label>
 
-            <label>Historisk baseline
+            <label>
+                <span>Historisk baseline</span>
                 <select id="useHistoricalBaseline" name="useHistoricalBaseline">
                     <option value="false" selected>false</option>
                     <option value="true">true</option>
                 </select>
             </label>
 
-            <label>Historiska dagar<input id="historicalDays" name="historicalDays" type="number" value="10"></label>
-            <label>Min % av historiskt snitt<input id="minPercentOfAverage" name="minPercentOfAverage" type="number" value="85"></label>
-
-            <label class="span-2">Multi-window spec
-                <textarea id="windowsSpec" name="windowsSpec" rows="4" placeholder="02:15|2|5&#10;15:10|5|10"></textarea>
+            <label>
+                <span>Historiska dagar</span>
+                <input id="historicalDays" name="historicalDays" type="number" value="10">
             </label>
 
-            <div class="form-actions">
-                <button id="saveBtn" class="btn" type="submit">Spara regel</button>
+            <label>
+                <span>Min % av historiskt snitt</span>
+                <input id="minPercentOfAverage" name="minPercentOfAverage" type="number" value="85">
+            </label>
+
+            <label class="span-3">
+                <span>Multi-window spec</span>
+                <textarea id="windowsSpec" name="windowsSpec" rows="5" placeholder="02:15|2|5&#10;15:10|5|10"></textarea>
+                <small class="field-help">En rad per fönster: HH:mm|min|max</small>
+            </label>
+
+            <div class="form-actions span-3">
+                <button id="saveBtn" class="btn primary" type="submit">Spara regel</button>
             </div>
         </form>
     </section>
 
     <section class="panel">
         <div class="panel-header">
-            <h2>Bevakningar</h2>
+            <div>
+                <h2>Aktiva bevakningar</h2>
+                <p class="panel-subtitle">Översikt över regler, status och antal inkomna flöden idag.</p>
+            </div>
             <input id="filterInput" class="search" placeholder="Filtrera sender / receiver / msgType">
         </div>
+
         <div class="table-wrap">
             <table id="rulesTable">
                 <thead>
@@ -121,19 +194,37 @@
 
     <section class="panel">
         <div class="panel-header">
-            <h2>Admin / Konfiguration</h2>
+            <div>
+                <h2>Admin / Konfiguration</h2>
+                <p class="panel-subtitle">Visa aktiv konfiguration samt exportera och importera regler.</p>
+            </div>
             <div class="actions">
                 <button id="loadConfigBtn" class="btn secondary" type="button">Ladda config</button>
                 <button id="exportRulesBtn" class="btn secondary" type="button">Exportera regler</button>
                 <button id="importRulesBtn" class="btn secondary" type="button">Importera regler</button>
             </div>
         </div>
-        <pre id="adminConfigBox" class="codebox">Inte laddad ännu</pre>
-        <textarea id="rulesJsonBox" class="codebox inputbox" placeholder="Här visas exporterad JSON eller klistra in regler för import"></textarea>
+
+        <div class="admin-grid">
+            <div>
+                <h3 class="subheading">Konfiguration</h3>
+                <pre id="adminConfigBox" class="codebox">Inte laddad ännu</pre>
+            </div>
+            <div>
+                <h3 class="subheading">Regel-JSON</h3>
+                <textarea id="rulesJsonBox" class="codebox inputbox" placeholder="Här visas exporterad JSON eller klistra in regler för import"></textarea>
+            </div>
+        </div>
     </section>
 
     <section class="panel">
-        <div class="panel-header"><h2>Historik</h2></div>
+        <div class="panel-header">
+            <div>
+                <h2>Historik</h2>
+                <p class="panel-subtitle">Kvitteringar och händelser för larm och regler.</p>
+            </div>
+        </div>
+
         <div class="table-wrap">
             <table id="historyTable">
                 <thead>
