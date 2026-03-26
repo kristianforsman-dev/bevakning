@@ -2,6 +2,7 @@ package se.forsman.bevakning.web;
 
 import se.forsman.bevakning.admin.RuleImportExportService;
 import se.forsman.bevakning.config.AppConfig;
+import se.forsman.bevakning.web.json.ServletJsonWriter;
 
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
@@ -12,9 +13,6 @@ public class ApiRulesExportServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         RuleImportExportService service = new RuleImportExportService(new AppConfig());
-
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
-        resp.getWriter().write(service.exportRulesJson());
+        ServletJsonWriter.writeJson(resp, service.exportRulesJson());
     }
 }
