@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const API = {
+        dashboard: '/api/dashboard',
+        rules: '/api/rules',
+        acknowledge: '/api/acknowledge',
+        history: '/api/history',
+        health: '/api/health',
+        adminConfig: '/api/admin/config',
+        exportRules: '/api/admin/rules/export',
+        importRules: '/api/admin/rules/import'
+    };
+
     const tbody = document.querySelector('#rulesTable tbody');
     const historyBody = document.querySelector('#historyTable tbody');
     const ruleForm = document.getElementById('ruleForm');
@@ -9,6 +20,24 @@ document.addEventListener('DOMContentLoaded', function () {
     function qs(id) { return document.getElementById(id); }
     function statusClass(status) { return 'status-' + String(status || '').toLowerCase(); }
     function formDataFromForm(form) { return new URLSearchParams(new FormData(form)); }
+
+    async function fetchJson(url, options) {
+        const response = await fetch(url, options || { cache: 'no-store' });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || ('HTTP ' + response.status));
+        }
+        return await response.json();
+    }
+
+    async function fetchText(url, options) {
+        const response = await fetch(url, options || { cache: 'no-store' });
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(text || ('HTTP ' + response.status));
+        }
+        return await response.text();
+    }
 
     function escapeHtml(value) {
         return String(value == null ? '' : value)
@@ -95,8 +124,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadDashboard() {
-        const response = await fetch('/api/dashboard', { cache: 'no-store' });
-        const data = await response.json();
+        const data = await fetchJson(API.dashboard, { cache: 'no-store' });
 
         qs('statTotal').textContent = data.totalFlowsToday;
         qs('statOk').textContent = data.ok;
@@ -111,8 +139,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadRules() {
-        const response = await fetch('/api/rules', { cache: 'no-store' });
-        return await response.json();
+        return await fetchJson(API.rules, { cache: 'no-store' });
     }
 
     async function loadRuleForEdit(ruleId) {
@@ -142,8 +169,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadHistory() {
-        const response = await fetch('/api/history', { cache: 'no-store' });
-        const rows = await response.json();
+        const rows = await fetchJson(API.history, { cache: 'no-store' });
 
         historyBody.innerHTML = '';
         rows.slice().reverse().forEach(function (row) {
@@ -161,14 +187,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function loadAdminConfig() {
-        const response = await fetch('/api/admin/config', { cache: 'no-store' });
-        const data = await response.json();
+        const data = await fetchJson(API.adminConfig, { cache: 'no-store' });
         qs('adminConfigBox').textContent = JSON.stringify(data, null, 2);
     }
 
     async function exportRules() {
-        const response = await fetch('/api/admin/rules/export', { cache: 'no-store' });
-        const text = await response.text();
+        const text = await fetchText(API.exportRules, { cache: 'no-store' });
         qs('rulesJsonBox').value = text;
     }
 
@@ -179,17 +203,11 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        const response = await fetch('/api/admin/rules/import', {
+        await fetchText(API.importRules, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json;charset=UTF-8' },
             body: body
         });
-
-        if (!response.ok) {
-            const text = await response.text();
-            alert('Import misslyckades: ' + text);
-            return;
-        }
 
         await refreshAll();
     }
@@ -199,27 +217,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const id = qs('ruleId').value.trim();
         const body = formDataFromForm(ruleForm);
 
-        const response = await fetch('/api/rules', {
+        await fetchText(API.rules, {
             method: id ? 'PUT' : 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
             body: body.toString()
         });
-
-        if (!response.ok) {
-            alert('Kunde inte spara regel');
-            return;
-        }
 
         resetForm();
         await refreshAll();
     }
 
     async function deleteRule(ruleId) {
-        const response = await fetch('/api/rules?id=' + encodeURIComponent(ruleId), { method: 'DELETE' });
-        if (!response.ok) {
-            alert('Kunde inte radera regel');
-            return;
-        }
+        await fetchText(API.rules + '?id=' + encodeURIComponent(ruleId), {
+            method: 'DELETE'
+        });
         await refreshAll();
     }
 
@@ -233,24 +244,24 @@ document.addEventListener('DOMContentLoaded', function () {
         body.set('comment', comment);
         body.set('acknowledgedBy', acknowledgedBy);
 
-        const response = await fetch('/api/acknowledge', {
+        await fetchText(API.acknowledge, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
             body: body.toString()
         });
 
-        if (!response.ok) {
-            alert('Kunde inte kvittera');
-            return;
-        }
-
         await refreshAll();
     }
 
     async function refreshAll() {
-        await loadDashboard();
-        await loadHistory();
-        await loadAdminConfig();
+        try {
+            await loadDashboard();
+            await loadHistory();
+            await loadAdminConfig();
+        } catch (e) {
+            console.error(e);
+            showBackendBanner(false, e.message || 'Kunde inte ladda data');
+        }
     }
 
     ruleForm.addEventListener('submit', saveRule);
@@ -273,14 +284,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const ackId = event.target.getAttribute('data-ack');
         const ackStatus = event.target.getAttribute('data-status');
 
-        if (editId) {
-            await loadRuleForEdit(editId);
-        } else if (deleteId) {
-            if (window.confirm('Vill du radera regeln?')) {
-                await deleteRule(deleteId);
+        try {
+            if (editId) {
+                await loadRuleForEdit(editId);
+            } else if (deleteId) {
+                if (window.confirm('Vill du radera regeln?')) {
+                    await deleteRule(deleteId);
+                }
+            } else if (ackId) {
+                await acknowledge(ackId, ackStatus);
             }
-        } else if (ackId) {
-            await acknowledge(ackId, ackStatus);
+        } catch (e) {
+            console.error(e);
+            alert('Något gick fel: ' + (e.message || 'okänt fel'));
         }
     });
 
