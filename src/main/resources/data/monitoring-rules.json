@@ -1,0 +1,33 @@
+[
+  {
+    "id": "rule-001",
+    "sender": "ERP01",
+    "receiver": "AP01",
+    "msgType": "INVOICE",
+    "description": "Daglig fakturainläsning",
+    "scheduleType": "DAILY",
+    "active": true,
+    "minExpected": 1000,
+    "maxExpected": 2000,
+    "deadline": "15:00",
+    "warningMinutesBeforeDeadline": 60,
+    "windows": []
+  },
+  {
+    "id": "rule-002",
+    "sender": "WMS01",
+    "receiver": "ERP01",
+    "msgType": "DESADV",
+    "description": "Två leveranser tidigt, tre senare",
+    "scheduleType": "MULTI_WINDOW",
+    "active": true,
+    "minExpected": 0,
+    "maxExpected": 0,
+    "deadline": "15:10",
+    "warningMinutesBeforeDeadline": 30,
+    "windows": [
+      { "deadline": "02:15", "minExpected": 2, "maxExpected": 5 },
+      { "deadline": "15:10", "minExpected": 3, "maxExpected": 8 }
+    ]
+  }
+]

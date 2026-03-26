@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flödesbevakning</title>
+    <link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<div class="shell">
+    <header class="hero">
+        <div>
+            <div class="eyebrow">Integration Monitoring</div>
+            <h1>Flödesbevakning</h1>
+            <p class="hero-text">Lokal dev-mode i Codespaces. Samma service-lager kan senare kopplas till WebSphere och Db2.</p>
+        </div>
+        <div class="hero-meta">
+            <div class="meta-label">Senast uppdaterad</div>
+            <div id="refreshedAt" class="meta-value">-</div>
+        </div>
+    </header>
+
+    <section class="stats-grid">
+        <article class="stat-card">
+            <div class="stat-label">Totalt idag</div>
+            <div id="statTotal" class="stat-value">0</div>
+        </article>
+        <article class="stat-card ok">
+            <div class="stat-label">OK</div>
+            <div id="statOk" class="stat-value">0</div>
+        </article>
+        <article class="stat-card info">
+            <div class="stat-label">Info</div>
+            <div id="statInfo" class="stat-value">0</div>
+        </article>
+        <article class="stat-card warn">
+            <div class="stat-label">Warning</div>
+            <div id="statWarning" class="stat-value">0</div>
+        </article>
+        <article class="stat-card error">
+            <div class="stat-label">Error</div>
+            <div id="statError" class="stat-value">0</div>
+        </article>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Ny bevakning</h2>
+            <button id="resetBtn" class="btn secondary" type="button">Rensa</button>
+        </div>
+        <form id="ruleForm" class="form-grid">
+            <input type="hidden" id="ruleId" name="id">
+            <label>Sender<input id="sender" name="sender" required></label>
+            <label>Receiver<input id="receiver" name="receiver" required></label>
+            <label>MsgType<input id="msgType" name="msgType" required></label>
+            <label>Beskrivning<input id="description" name="description"></label>
+            <label>Min antal<input id="minExpected" name="minExpected" type="number" value="1" required></label>
+            <label>Max antal<input id="maxExpected" name="maxExpected" type="number" value="1" required></label>
+            <label>Deadline<input id="deadline" name="deadline" type="time" value="15:00" required></label>
+            <label>Varning min före deadline<input id="warningMinutesBeforeDeadline" name="warningMinutesBeforeDeadline" type="number" value="60" required></label>
+            <label>Aktiv
+                <select id="active" name="active">
+                    <option value="true" selected>true</option>
+                    <option value="false">false</option>
+                </select>
+            </label>
+            <div class="form-actions">
+                <button id="saveBtn" class="btn" type="submit">Spara regel</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Bevakningar</h2>
+            <input id="filterInput" class="search" placeholder="Filtrera sender / receiver / msgType">
+        </div>
+        <div class="table-wrap">
+            <table id="rulesTable">
+                <thead>
+                <tr>
+                    <th>Sender</th>
+                    <th>Receiver</th>
+                    <th>MsgType</th>
+                    <th>Status</th>
+                    <th>Antal idag</th>
+                    <th>Deadline</th>
+                    <th>Beskrivning</th>
+                    <th>Meddelande</th>
+                    <th>Åtgärder</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Historik</h2>
+        </div>
+        <div class="table-wrap">
+            <table id="historyTable">
+                <thead>
+                <tr>
+                    <th>Tid</th>
+                    <th>RuleId</th>
+                    <th>Status</th>
+                    <th>Händelse</th>
+                    <th>Kommentar</th>
+                    <th>Användare</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+</div>
+
+<script src="/assets/js/app.js"></script>
+</body>
+</html>

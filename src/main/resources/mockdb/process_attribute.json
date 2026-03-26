@@ -1,0 +1,17 @@
+[
+  { "piid": 1001, "name": "sender",   "value": "ERP01" },
+  { "piid": 1001, "name": "receiver", "value": "AP01" },
+  { "piid": 1001, "name": "msgType",  "value": "INVOICE" },
+
+  { "piid": 1002, "name": "sender",   "value": "ERP01" },
+  { "piid": 1002, "name": "receiver", "value": "AP01" },
+  { "piid": 1002, "name": "msgType",  "value": "INVOICE" },
+
+  { "piid": 1003, "name": "sender",   "value": "WMS01" },
+  { "piid": 1003, "name": "receiver", "value": "ERP01" },
+  { "piid": 1003, "name": "msgType",  "value": "DESADV" },
+
+  { "piid": 1004, "name": "sender",   "value": "BANK01" },
+  { "piid": 1004, "name": "receiver", "value": "ERP01" },
+  { "piid": 1004, "name": "msgType",  "value": "PAYMENT" }
+]

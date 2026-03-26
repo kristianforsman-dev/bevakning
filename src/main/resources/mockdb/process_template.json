@@ -1,0 +1,5 @@
+[
+  { "ptid": 501, "name": "Invoice Inbound" },
+  { "ptid": 502, "name": "Desadv Inbound" },
+  { "ptid": 503, "name": "Payment Inbound" }
+]
