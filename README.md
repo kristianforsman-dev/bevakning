@@ -12,6 +12,7 @@ Start:
 ```bash
 mvn clean package
 mvn exec:java
+
 Öppna port 8080.
 
 2. WebSphere-läge
