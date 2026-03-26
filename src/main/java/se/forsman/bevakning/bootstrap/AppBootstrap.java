@@ -10,6 +10,7 @@ import javax.servlet.annotation.WebListener;
 
 @WebListener
 public class AppBootstrap implements ServletContextListener {
+    public static final String APP_SERVICES_KEY = "appServices";
     public static final String DASHBOARD_SERVICE_KEY = "dashboardService";
     public static final String RULE_SERVICE_KEY = "ruleService";
     public static final String ACK_SERVICE_KEY = "ackService";
@@ -18,6 +19,7 @@ public class AppBootstrap implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         AppServices services = AppFactory.create();
         ServletContext context = sce.getServletContext();
+        context.setAttribute(APP_SERVICES_KEY, services);
         context.setAttribute(DASHBOARD_SERVICE_KEY, services.getDashboardService());
         context.setAttribute(RULE_SERVICE_KEY, services.getRuleService());
         context.setAttribute(ACK_SERVICE_KEY, services.getAcknowledgementService());

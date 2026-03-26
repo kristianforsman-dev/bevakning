@@ -13,6 +13,15 @@ public class JsonMonitoringRuleRepository implements MonitoringRuleRepository {
     @Override
     public List<MonitoringRule> findAllRules() {
         List<Map<String, Object>> rows = castList(JsonUtils.parseJsonResource("data/monitoring-rules.json"));
+        return toRules(rows);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> castList(Object value) {
+        return (List<Map<String, Object>>) value;
+    }
+
+    private List<MonitoringRule> toRules(List<Map<String, Object>> rows) {
         List<MonitoringRule> result = new ArrayList<MonitoringRule>();
 
         for (Map<String, Object> row : rows) {
@@ -41,16 +50,17 @@ public class JsonMonitoringRuleRepository implements MonitoringRuleRepository {
                     toInt(row.get("maxExpected")),
                     stringValue(row.get("deadline")),
                     toInt(row.get("warningMinutesBeforeDeadline")),
-                    windows
+                    windows,
+                    stringValue(row.get("weekdays")),
+                    stringValue(row.get("monthDays")),
+                    stringValue(row.get("specificDates")),
+                    toBoolean(row.get("useHistoricalBaseline")),
+                    toInt(row.get("historicalDays")),
+                    toInt(row.get("minPercentOfAverage"))
             ));
         }
 
         return result;
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> castList(Object value) {
-        return (List<Map<String, Object>>) value;
     }
 
     private int toInt(Object value) {
@@ -66,6 +76,6 @@ public class JsonMonitoringRuleRepository implements MonitoringRuleRepository {
     }
 
     private String stringValue(Object value) {
-        return value == null ? null : String.valueOf(value);
+        return value == null ? "" : String.valueOf(value);
     }
 }

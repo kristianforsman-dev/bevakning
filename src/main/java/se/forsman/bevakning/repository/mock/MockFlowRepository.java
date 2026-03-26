@@ -1,5 +1,6 @@
 package se.forsman.bevakning.repository.mock;
 
+import se.forsman.bevakning.domain.BackendStatus;
 import se.forsman.bevakning.domain.FlowEvent;
 import se.forsman.bevakning.repository.FlowRepository;
 import se.forsman.bevakning.util.JsonUtils;
@@ -55,6 +56,11 @@ public class MockFlowRepository implements FlowRepository {
         }
 
         return result;
+    }
+
+    @Override
+    public BackendStatus getBackendStatus() {
+        return new BackendStatus(true, "Mockdata aktiv");
     }
 
     @SuppressWarnings("unchecked")

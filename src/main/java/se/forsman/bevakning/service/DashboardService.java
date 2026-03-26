@@ -1,15 +1,15 @@
 package se.forsman.bevakning.service;
 
 import se.forsman.bevakning.domain.AlertStatus;
+import se.forsman.bevakning.domain.BackendStatus;
+import se.forsman.bevakning.domain.DailyFlowCount;
 import se.forsman.bevakning.domain.DashboardSnapshot;
-import se.forsman.bevakning.domain.FlowEvent;
 import se.forsman.bevakning.domain.FlowKey;
 import se.forsman.bevakning.domain.MonitoringRule;
 import se.forsman.bevakning.domain.RuleEvaluation;
 import se.forsman.bevakning.repository.FlowRepository;
 import se.forsman.bevakning.repository.MonitoringRuleRepository;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -19,72 +19,91 @@ public class DashboardService {
     private final FlowRepository flowRepository;
     private final MonitoringRuleRepository monitoringRuleRepository;
     private final MonitoringEngine monitoringEngine;
+    private final int historicalLookbackDays;
 
     public DashboardService(FlowRepository flowRepository,
                             MonitoringRuleRepository monitoringRuleRepository,
-                            MonitoringEngine monitoringEngine) {
+                            MonitoringEngine monitoringEngine,
+                            int historicalLookbackDays) {
         this.flowRepository = flowRepository;
         this.monitoringRuleRepository = monitoringRuleRepository;
         this.monitoringEngine = monitoringEngine;
+        this.historicalLookbackDays = historicalLookbackDays;
     }
 
     public DashboardSnapshot getSnapshot() {
-        List<FlowEvent> allEvents = flowRepository.findAllFlowEvents();
-        List<MonitoringRule> rules = monitoringRuleRepository.findAllRules();
+        try {
+            List<DailyFlowCount> todayFlowCounts = flowRepository.findTodayFlowCounts();
+            List<DailyFlowCount> historicalFlowCounts = flowRepository.findHistoricalFlowCounts(historicalLookbackDays);
 
-        Map<FlowKey, Integer> countsToday = countToday(allEvents);
-        int totalFlowsToday = totalFlowsToday(allEvents);
+            List<DailyFlowCount> allDailyCounts = new ArrayList<DailyFlowCount>();
+            allDailyCounts.addAll(todayFlowCounts);
+            allDailyCounts.addAll(historicalFlowCounts);
 
-        List<RuleEvaluation> rows = new ArrayList<RuleEvaluation>();
-        int ok = 0;
-        int info = 0;
-        int warning = 0;
-        int error = 0;
+            List<MonitoringRule> rules = monitoringRuleRepository.findAllRules();
 
-        for (MonitoringRule rule : rules) {
-            if (!rule.isActive()) {
-                continue;
+            Map<FlowKey, Integer> countsToday = countToday(todayFlowCounts);
+            int totalFlowsToday = totalFlowsToday(todayFlowCounts);
+
+            List<RuleEvaluation> rows = new ArrayList<RuleEvaluation>();
+            int ok = 0;
+            int info = 0;
+            int warning = 0;
+            int error = 0;
+
+            for (MonitoringRule rule : rules) {
+                RuleEvaluation evaluation = monitoringEngine.evaluate(rule, countsToday, allDailyCounts);
+                rows.add(evaluation);
+
+                if (evaluation.getStatus() == AlertStatus.OK) ok++;
+                else if (evaluation.getStatus() == AlertStatus.INFO) info++;
+                else if (evaluation.getStatus() == AlertStatus.WARNING) warning++;
+                else if (evaluation.getStatus() == AlertStatus.ERROR) error++;
             }
 
-            RuleEvaluation evaluation = monitoringEngine.evaluate(rule, countsToday, allEvents);
-            rows.add(evaluation);
+            BackendStatus backendStatus = flowRepository.getBackendStatus();
 
-            if (evaluation.getStatus() == AlertStatus.OK) ok++;
-            else if (evaluation.getStatus() == AlertStatus.INFO) info++;
-            else if (evaluation.getStatus() == AlertStatus.WARNING) warning++;
-            else if (evaluation.getStatus() == AlertStatus.ERROR) error++;
+            return new DashboardSnapshot(
+                    totalFlowsToday,
+                    ok,
+                    info,
+                    warning,
+                    error,
+                    rows,
+                    backendStatus.isOk(),
+                    backendStatus.getMessage()
+            );
+        } catch (Exception e) {
+            return new DashboardSnapshot(
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    new ArrayList<RuleEvaluation>(),
+                    false,
+                    e.getMessage() == null ? "Tekniskt fel i backend" : e.getMessage()
+            );
         }
-
-        return new DashboardSnapshot(totalFlowsToday, ok, info, warning, error, rows);
     }
 
-    private Map<FlowKey, Integer> countToday(List<FlowEvent> events) {
+    private Map<FlowKey, Integer> countToday(List<DailyFlowCount> dailyFlowCounts) {
         Map<FlowKey, Integer> result = new HashMap<FlowKey, Integer>();
-        LocalDate today = LocalDate.now();
 
-        for (FlowEvent event : events) {
-            if (event.getStarted() == null) {
-                continue;
-            }
-            if (!today.equals(event.getStarted().toLocalDate())) {
-                continue;
-            }
-            FlowKey key = event.toKey();
-            Integer current = result.get(key);
-            result.put(key, current == null ? 1 : current + 1);
+        for (DailyFlowCount daily : dailyFlowCounts) {
+            result.put(daily.toKey(), daily.getCount());
         }
 
         return result;
     }
 
-    private int totalFlowsToday(List<FlowEvent> events) {
-        LocalDate today = LocalDate.now();
+    private int totalFlowsToday(List<DailyFlowCount> dailyFlowCounts) {
         int count = 0;
-        for (FlowEvent event : events) {
-            if (event.getStarted() != null && today.equals(event.getStarted().toLocalDate())) {
-                count++;
-            }
+
+        for (DailyFlowCount daily : dailyFlowCounts) {
+            count += daily.getCount();
         }
+
         return count;
     }
 }

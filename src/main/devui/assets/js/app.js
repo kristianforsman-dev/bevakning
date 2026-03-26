@@ -6,17 +6,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let currentRows = [];
 
-    function qs(id) {
-        return document.getElementById(id);
-    }
-
-    function statusClass(status) {
-        return 'status-' + String(status || '').toLowerCase();
-    }
-
-    function formDataFromForm(form) {
-        return new URLSearchParams(new FormData(form));
-    }
+    function qs(id) { return document.getElementById(id); }
+    function statusClass(status) { return 'status-' + String(status || '').toLowerCase(); }
+    function formDataFromForm(form) { return new URLSearchParams(new FormData(form)); }
 
     function escapeHtml(value) {
         return String(value == null ? '' : value)
@@ -32,23 +24,42 @@ document.addEventListener('DOMContentLoaded', function () {
         return value.replace('T', ' ').slice(0, 19);
     }
 
+    function showBackendBanner(ok, message) {
+        const banner = qs('backendBanner');
+        if (ok) {
+            banner.classList.add('hidden');
+            banner.textContent = '';
+            return;
+        }
+        banner.classList.remove('hidden');
+        banner.textContent = 'Tekniskt backend-fel: ' + (message || 'okänt fel');
+    }
+
     function resetForm() {
         qs('ruleId').value = '';
         qs('sender').value = '';
         qs('receiver').value = '';
         qs('msgType').value = '';
         qs('description').value = '';
+        qs('scheduleType').value = 'DAILY';
         qs('minExpected').value = '1';
         qs('maxExpected').value = '1';
         qs('deadline').value = '15:00';
         qs('warningMinutesBeforeDeadline').value = '60';
         qs('active').value = 'true';
+        qs('weekdays').value = '';
+        qs('monthDays').value = '';
+        qs('specificDates').value = '';
+        qs('useHistoricalBaseline').value = 'false';
+        qs('historicalDays').value = '10';
+        qs('minPercentOfAverage').value = '85';
+        qs('windowsSpec').value = '';
     }
 
     function renderDashboardRows(rows) {
         const filter = (filterInput.value || '').trim().toLowerCase();
         const filtered = rows.filter(function (row) {
-            const haystack = [row.sender, row.receiver, row.msgType, row.description].join(' ').toLowerCase();
+            const haystack = [row.sender, row.receiver, row.msgType, row.description, row.scheduleType].join(' ').toLowerCase();
             return !filter || haystack.includes(filter);
         });
 
@@ -65,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td class="mono">${escapeHtml(row.sender)}</td>
                 <td class="mono">${escapeHtml(row.receiver)}</td>
                 <td class="mono">${escapeHtml(row.msgType)}</td>
+                <td class="mono">${escapeHtml(row.scheduleType || '')}</td>
                 <td><span class="status-chip ${statusClass(row.status)}">${escapeHtml(row.status)}</span></td>
                 <td>${escapeHtml(row.countToday)}</td>
                 <td class="mono">${escapeHtml(row.deadline)}</td>
@@ -92,6 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
         qs('statWarning').textContent = data.warning;
         qs('statError').textContent = data.error;
         qs('refreshedAt').textContent = formatTimestamp(data.refreshedAt);
+        showBackendBanner(data.backendOk, data.backendMessage);
 
         currentRows = data.rows || [];
         renderDashboardRows(currentRows);
@@ -112,11 +125,19 @@ document.addEventListener('DOMContentLoaded', function () {
         qs('receiver').value = rule.receiver || '';
         qs('msgType').value = rule.msgType || '';
         qs('description').value = rule.description || '';
+        qs('scheduleType').value = rule.scheduleType || 'DAILY';
         qs('minExpected').value = rule.minExpected || 0;
         qs('maxExpected').value = rule.maxExpected || 0;
         qs('deadline').value = rule.deadline || '15:00';
         qs('warningMinutesBeforeDeadline').value = rule.warningMinutesBeforeDeadline || 60;
         qs('active').value = String(rule.active);
+        qs('weekdays').value = rule.weekdays || '';
+        qs('monthDays').value = rule.monthDays || '';
+        qs('specificDates').value = rule.specificDates || '';
+        qs('useHistoricalBaseline').value = String(rule.useHistoricalBaseline);
+        qs('historicalDays').value = rule.historicalDays || 10;
+        qs('minPercentOfAverage').value = rule.minPercentOfAverage || 85;
+        qs('windowsSpec').value = (rule.windowsSpec || '').replaceAll('\\n', '\n');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -137,6 +158,40 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             historyBody.appendChild(tr);
         });
+    }
+
+    async function loadAdminConfig() {
+        const response = await fetch('/api/admin/config', { cache: 'no-store' });
+        const data = await response.json();
+        qs('adminConfigBox').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function exportRules() {
+        const response = await fetch('/api/admin/rules/export', { cache: 'no-store' });
+        const text = await response.text();
+        qs('rulesJsonBox').value = text;
+    }
+
+    async function importRules() {
+        const body = qs('rulesJsonBox').value;
+        if (!body.trim()) {
+            alert('Ingen JSON att importera');
+            return;
+        }
+
+        const response = await fetch('/api/admin/rules/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json;charset=UTF-8' },
+            body: body
+        });
+
+        if (!response.ok) {
+            const text = await response.text();
+            alert('Import misslyckades: ' + text);
+            return;
+        }
+
+        await refreshAll();
     }
 
     async function saveRule(event) {
@@ -160,15 +215,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function deleteRule(ruleId) {
-        const response = await fetch('/api/rules?id=' + encodeURIComponent(ruleId), {
-            method: 'DELETE'
-        });
-
+        const response = await fetch('/api/rules?id=' + encodeURIComponent(ruleId), { method: 'DELETE' });
         if (!response.ok) {
             alert('Kunde inte radera regel');
             return;
         }
-
         await refreshAll();
     }
 
@@ -199,6 +250,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function refreshAll() {
         await loadDashboard();
         await loadHistory();
+        await loadAdminConfig();
     }
 
     ruleForm.addEventListener('submit', saveRule);
@@ -206,6 +258,10 @@ document.addEventListener('DOMContentLoaded', function () {
     qs('resetBtn').addEventListener('click', function () {
         resetForm();
     });
+
+    qs('loadConfigBtn').addEventListener('click', loadAdminConfig);
+    qs('exportRulesBtn').addEventListener('click', exportRules);
+    qs('importRulesBtn').addEventListener('click', importRules);
 
     filterInput.addEventListener('input', function () {
         renderDashboardRows(currentRows);

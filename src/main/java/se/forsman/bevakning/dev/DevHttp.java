@@ -2,7 +2,11 @@ package se.forsman.bevakning.dev;
 
 import com.sun.net.httpserver.HttpExchange;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -40,6 +44,15 @@ public final class DevHttp {
             parseInto(query, result);
         }
 
+        String body = readBody(exchange);
+        if (!body.trim().isEmpty()) {
+            parseInto(body, result);
+        }
+
+        return result;
+    }
+
+    public static String readBody(HttpExchange exchange) throws IOException {
         InputStream in = exchange.getRequestBody();
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         byte[] buffer = new byte[1024];
@@ -47,12 +60,7 @@ public final class DevHttp {
         while ((read = in.read(buffer)) != -1) {
             baos.write(buffer, 0, read);
         }
-        String body = new String(baos.toByteArray(), StandardCharsets.UTF_8);
-        if (!body.trim().isEmpty()) {
-            parseInto(body, result);
-        }
-
-        return result;
+        return new String(baos.toByteArray(), StandardCharsets.UTF_8);
     }
 
     private static void parseInto(String input, Map<String, String> result) throws UnsupportedEncodingException {

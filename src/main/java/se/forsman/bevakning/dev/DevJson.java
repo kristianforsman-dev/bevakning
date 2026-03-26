@@ -3,6 +3,7 @@ package se.forsman.bevakning.dev;
 import se.forsman.bevakning.domain.AlertHistoryEntry;
 import se.forsman.bevakning.domain.DashboardSnapshot;
 import se.forsman.bevakning.domain.MonitoringRule;
+import se.forsman.bevakning.domain.MonitoringWindow;
 import se.forsman.bevakning.domain.RuleEvaluation;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,8 @@ public final class DevJson {
         sb.append("\"info\":").append(snapshot.getInfo()).append(",");
         sb.append("\"warning\":").append(snapshot.getWarning()).append(",");
         sb.append("\"error\":").append(snapshot.getError()).append(",");
+        sb.append("\"backendOk\":").append(snapshot.isBackendOk()).append(",");
+        sb.append("\"backendMessage\":\"").append(escape(snapshot.getBackendMessage())).append("\",");
         sb.append("\"refreshedAt\":\"").append(escape(refreshedAt == null ? "" : refreshedAt.toString())).append("\",");
         sb.append("\"rows\":[");
         for (int i = 0; i < snapshot.getRows().size(); i++) {
@@ -31,6 +34,7 @@ public final class DevJson {
             sb.append("\"receiver\":\"").append(escape(row.getRule().getReceiver())).append("\",");
             sb.append("\"msgType\":\"").append(escape(row.getRule().getMsgType())).append("\",");
             sb.append("\"description\":\"").append(escape(row.getRule().getDescription())).append("\",");
+            sb.append("\"scheduleType\":\"").append(escape(row.getRule().getScheduleType())).append("\",");
             sb.append("\"status\":\"").append(escape(row.getStatus().name())).append("\",");
             sb.append("\"countToday\":").append(row.getCountToday()).append(",");
             sb.append("\"deadline\":\"").append(escape(row.getCurrentDeadline())).append("\",");
@@ -59,7 +63,14 @@ public final class DevJson {
             sb.append("\"minExpected\":").append(r.getMinExpected()).append(",");
             sb.append("\"maxExpected\":").append(r.getMaxExpected()).append(",");
             sb.append("\"deadline\":\"").append(escape(r.getDeadline())).append("\",");
-            sb.append("\"warningMinutesBeforeDeadline\":").append(r.getWarningMinutesBeforeDeadline());
+            sb.append("\"warningMinutesBeforeDeadline\":").append(r.getWarningMinutesBeforeDeadline()).append(",");
+            sb.append("\"weekdays\":\"").append(escape(r.getWeekdays())).append("\",");
+            sb.append("\"monthDays\":\"").append(escape(r.getMonthDays())).append("\",");
+            sb.append("\"specificDates\":\"").append(escape(r.getSpecificDates())).append("\",");
+            sb.append("\"useHistoricalBaseline\":").append(r.isUseHistoricalBaseline()).append(",");
+            sb.append("\"historicalDays\":").append(r.getHistoricalDays()).append(",");
+            sb.append("\"minPercentOfAverage\":").append(r.getMinPercentOfAverage()).append(",");
+            sb.append("\"windowsSpec\":\"").append(escape(toWindowsSpec(r.getWindows()))).append("\"");
             sb.append("}");
         }
         sb.append("]");
@@ -86,12 +97,30 @@ public final class DevJson {
         return sb.toString();
     }
 
+    public static String health(String mode, String source) {
+        return "{\"status\":\"UP\",\"mode\":\"" + escape(mode) + "\",\"source\":\"" + escape(source) + "\"}";
+    }
+
+    public static String error(String message) {
+        return "{\"status\":\"ERROR\",\"message\":\"" + escape(message) + "\"}";
+    }
+
     public static String okMessage(String message) {
         return "{\"message\":\"" + escape(message) + "\"}";
     }
 
+    private static String toWindowsSpec(List<MonitoringWindow> windows) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < windows.size(); i++) {
+            MonitoringWindow w = windows.get(i);
+            if (i > 0) sb.append("\n");
+            sb.append(w.getDeadline()).append("|").append(w.getMinExpected()).append("|").append(w.getMaxExpected());
+        }
+        return sb.toString();
+    }
+
     private static String escape(String value) {
         if (value == null) return "";
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
 }

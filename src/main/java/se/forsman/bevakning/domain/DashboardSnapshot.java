@@ -11,14 +11,25 @@ public class DashboardSnapshot {
     private final int warning;
     private final int error;
     private final List<RuleEvaluation> rows;
+    private final boolean backendOk;
+    private final String backendMessage;
 
-    public DashboardSnapshot(int totalFlowsToday, int ok, int info, int warning, int error, List<RuleEvaluation> rows) {
+    public DashboardSnapshot(int totalFlowsToday,
+                             int ok,
+                             int info,
+                             int warning,
+                             int error,
+                             List<RuleEvaluation> rows,
+                             boolean backendOk,
+                             String backendMessage) {
         this.totalFlowsToday = totalFlowsToday;
         this.ok = ok;
         this.info = info;
         this.warning = warning;
         this.error = error;
         this.rows = rows == null ? new ArrayList<RuleEvaluation>() : new ArrayList<RuleEvaluation>(rows);
+        this.backendOk = backendOk;
+        this.backendMessage = backendMessage;
     }
 
     public int getTotalFlowsToday() {
@@ -43,5 +54,13 @@ public class DashboardSnapshot {
 
     public List<RuleEvaluation> getRows() {
         return Collections.unmodifiableList(rows);
+    }
+
+    public boolean isBackendOk() {
+        return backendOk;
+    }
+
+    public String getBackendMessage() {
+        return backendMessage;
     }
 }

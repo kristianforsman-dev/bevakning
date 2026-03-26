@@ -1,6 +1,7 @@
 package se.forsman.bevakning.service;
 
 import se.forsman.bevakning.domain.MonitoringRule;
+import se.forsman.bevakning.domain.MonitoringWindow;
 import se.forsman.bevakning.repository.EditableMonitoringRuleRepository;
 
 import java.util.ArrayList;
@@ -22,45 +23,49 @@ public class RuleService {
         return repository.findById(id);
     }
 
-    public MonitoringRule createDailyRule(String sender, String receiver, String msgType, String description,
-                                          int minExpected, int maxExpected, String deadline,
-                                          int warningMinutesBeforeDeadline) {
-        MonitoringRule rule = new MonitoringRule(
-                "rule-" + UUID.randomUUID().toString(),
-                trim(sender),
-                trim(receiver),
-                trim(msgType),
-                trim(description),
-                "DAILY",
-                true,
-                minExpected,
-                maxExpected,
-                trim(deadline),
-                warningMinutesBeforeDeadline,
-                new ArrayList<se.forsman.bevakning.domain.MonitoringWindow>()
-        );
-        repository.save(rule);
-        return rule;
-    }
+    public MonitoringRule saveOrUpdateRule(String id,
+                                           String sender,
+                                           String receiver,
+                                           String msgType,
+                                           String description,
+                                           String scheduleType,
+                                           boolean active,
+                                           int minExpected,
+                                           int maxExpected,
+                                           String deadline,
+                                           int warningMinutesBeforeDeadline,
+                                           String windowsSpec,
+                                           String weekdays,
+                                           String monthDays,
+                                           String specificDates,
+                                           boolean useHistoricalBaseline,
+                                           int historicalDays,
+                                           int minPercentOfAverage) {
 
-    public MonitoringRule updateDailyRule(String id, String sender, String receiver, String msgType, String description,
-                                          int minExpected, int maxExpected, String deadline,
-                                          int warningMinutesBeforeDeadline, boolean active) {
         MonitoringRule rule = new MonitoringRule(
-                id,
+                empty(id) ? "rule-" + UUID.randomUUID().toString() : id,
                 trim(sender),
                 trim(receiver),
                 trim(msgType),
                 trim(description),
-                "DAILY",
+                defaultValue(trim(scheduleType), "DAILY"),
                 active,
                 minExpected,
                 maxExpected,
-                trim(deadline),
+                defaultValue(trim(deadline), "15:00"),
                 warningMinutesBeforeDeadline,
-                new ArrayList<se.forsman.bevakning.domain.MonitoringWindow>()
+                parseWindows(windowsSpec),
+                trim(weekdays),
+                trim(monthDays),
+                trim(specificDates),
+                useHistoricalBaseline,
+                historicalDays,
+                minPercentOfAverage
         );
-        repository.update(rule);
+
+        if (empty(id)) repository.save(rule);
+        else repository.update(rule);
+
         return rule;
     }
 
@@ -68,7 +73,40 @@ public class RuleService {
         repository.delete(id);
     }
 
+    private List<MonitoringWindow> parseWindows(String windowsSpec) {
+        List<MonitoringWindow> result = new ArrayList<MonitoringWindow>();
+        if (windowsSpec == null || windowsSpec.trim().isEmpty()) {
+            return result;
+        }
+
+        String[] rows = windowsSpec.split("\\r?\\n|;");
+        for (String row : rows) {
+            String line = row == null ? "" : row.trim();
+            if (line.isEmpty()) continue;
+
+            String[] parts = line.split("\\|");
+            if (parts.length < 3) {
+                throw new IllegalArgumentException("Ogiltigt windowsSpec. Använd formatet HH:mm|min|max");
+            }
+
+            result.add(new MonitoringWindow(
+                    parts[0].trim(),
+                    Integer.parseInt(parts[1].trim()),
+                    Integer.parseInt(parts[2].trim())
+            ));
+        }
+        return result;
+    }
+
     private String trim(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private boolean empty(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String defaultValue(String value, String fallback) {
+        return empty(value) ? fallback : value;
     }
 }

@@ -101,7 +101,13 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
                     toInt(row.get("maxExpected")),
                     stringValue(row.get("deadline")),
                     toInt(row.get("warningMinutesBeforeDeadline")),
-                    windows
+                    windows,
+                    stringValue(row.get("weekdays")),
+                    stringValue(row.get("monthDays")),
+                    stringValue(row.get("specificDates")),
+                    toBoolean(row.get("useHistoricalBaseline")),
+                    toInt(row.get("historicalDays")),
+                    toInt(row.get("minPercentOfAverage"))
             ));
         }
         return result;
@@ -112,9 +118,7 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
         sb.append("[\n");
         for (int i = 0; i < rules.size(); i++) {
             MonitoringRule rule = rules.get(i);
-            if (i > 0) {
-                sb.append(",\n");
-            }
+            if (i > 0) sb.append(",\n");
             sb.append("  {\n");
             sb.append("    \"id\": \"").append(escape(rule.getId())).append("\",\n");
             sb.append("    \"sender\": \"").append(escape(rule.getSender())).append("\",\n");
@@ -130,16 +134,20 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
             sb.append("    \"windows\": [");
             for (int w = 0; w < rule.getWindows().size(); w++) {
                 MonitoringWindow window = rule.getWindows().get(w);
-                if (w > 0) {
-                    sb.append(", ");
-                }
+                if (w > 0) sb.append(", ");
                 sb.append("{");
                 sb.append("\"deadline\": \"").append(escape(window.getDeadline())).append("\", ");
                 sb.append("\"minExpected\": ").append(window.getMinExpected()).append(", ");
                 sb.append("\"maxExpected\": ").append(window.getMaxExpected());
                 sb.append("}");
             }
-            sb.append("]\n");
+            sb.append("],\n");
+            sb.append("    \"weekdays\": \"").append(escape(rule.getWeekdays())).append("\",\n");
+            sb.append("    \"monthDays\": \"").append(escape(rule.getMonthDays())).append("\",\n");
+            sb.append("    \"specificDates\": \"").append(escape(rule.getSpecificDates())).append("\",\n");
+            sb.append("    \"useHistoricalBaseline\": ").append(rule.isUseHistoricalBaseline()).append(",\n");
+            sb.append("    \"historicalDays\": ").append(rule.getHistoricalDays()).append(",\n");
+            sb.append("    \"minPercentOfAverage\": ").append(rule.getMinPercentOfAverage()).append("\n");
             sb.append("  }");
         }
         sb.append("\n]\n");

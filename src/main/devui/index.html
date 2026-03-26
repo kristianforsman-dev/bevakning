@@ -20,27 +20,14 @@
         </div>
     </header>
 
+    <section id="backendBanner" class="banner hidden"></section>
+
     <section class="stats-grid">
-        <article class="stat-card">
-            <div class="stat-label">Totalt idag</div>
-            <div id="statTotal" class="stat-value">0</div>
-        </article>
-        <article class="stat-card ok">
-            <div class="stat-label">OK</div>
-            <div id="statOk" class="stat-value">0</div>
-        </article>
-        <article class="stat-card info">
-            <div class="stat-label">Info</div>
-            <div id="statInfo" class="stat-value">0</div>
-        </article>
-        <article class="stat-card warn">
-            <div class="stat-label">Warning</div>
-            <div id="statWarning" class="stat-value">0</div>
-        </article>
-        <article class="stat-card error">
-            <div class="stat-label">Error</div>
-            <div id="statError" class="stat-value">0</div>
-        </article>
+        <article class="stat-card"><div class="stat-label">Totalt idag</div><div id="statTotal" class="stat-value">0</div></article>
+        <article class="stat-card ok"><div class="stat-label">OK</div><div id="statOk" class="stat-value">0</div></article>
+        <article class="stat-card info"><div class="stat-label">Info</div><div id="statInfo" class="stat-value">0</div></article>
+        <article class="stat-card warn"><div class="stat-label">Warning</div><div id="statWarning" class="stat-value">0</div></article>
+        <article class="stat-card error"><div class="stat-label">Error</div><div id="statError" class="stat-value">0</div></article>
     </section>
 
     <section class="panel">
@@ -48,22 +35,58 @@
             <h2>Ny bevakning</h2>
             <button id="resetBtn" class="btn secondary" type="button">Rensa</button>
         </div>
-        <form id="ruleForm" class="form-grid">
+        <form id="ruleForm" class="form-grid wide">
             <input type="hidden" id="ruleId" name="id">
             <label>Sender<input id="sender" name="sender" required></label>
             <label>Receiver<input id="receiver" name="receiver" required></label>
             <label>MsgType<input id="msgType" name="msgType" required></label>
             <label>Beskrivning<input id="description" name="description"></label>
+
+            <label>Schedule type
+                <select id="scheduleType" name="scheduleType">
+                    <option value="DAILY">DAILY</option>
+                    <option value="MULTI_WINDOW">MULTI_WINDOW</option>
+                </select>
+            </label>
+
             <label>Min antal<input id="minExpected" name="minExpected" type="number" value="1" required></label>
             <label>Max antal<input id="maxExpected" name="maxExpected" type="number" value="1" required></label>
             <label>Deadline<input id="deadline" name="deadline" type="time" value="15:00" required></label>
             <label>Varning min före deadline<input id="warningMinutesBeforeDeadline" name="warningMinutesBeforeDeadline" type="number" value="60" required></label>
+
             <label>Aktiv
                 <select id="active" name="active">
                     <option value="true" selected>true</option>
                     <option value="false">false</option>
                 </select>
             </label>
+
+            <label>Weekdays
+                <input id="weekdays" name="weekdays" placeholder="MON,TUE,WED,THU,FRI">
+            </label>
+
+            <label>Month days
+                <input id="monthDays" name="monthDays" placeholder="15,25">
+            </label>
+
+            <label>Specific dates
+                <input id="specificDates" name="specificDates" placeholder="2026-03-31,2026-04-30">
+            </label>
+
+            <label>Historisk baseline
+                <select id="useHistoricalBaseline" name="useHistoricalBaseline">
+                    <option value="false" selected>false</option>
+                    <option value="true">true</option>
+                </select>
+            </label>
+
+            <label>Historiska dagar<input id="historicalDays" name="historicalDays" type="number" value="10"></label>
+            <label>Min % av historiskt snitt<input id="minPercentOfAverage" name="minPercentOfAverage" type="number" value="85"></label>
+
+            <label class="span-2">Multi-window spec
+                <textarea id="windowsSpec" name="windowsSpec" rows="4" placeholder="02:15|2|5&#10;15:10|5|10"></textarea>
+            </label>
+
             <div class="form-actions">
                 <button id="saveBtn" class="btn" type="submit">Spara regel</button>
             </div>
@@ -82,6 +105,7 @@
                     <th>Sender</th>
                     <th>Receiver</th>
                     <th>MsgType</th>
+                    <th>Typ</th>
                     <th>Status</th>
                     <th>Antal idag</th>
                     <th>Deadline</th>
@@ -97,8 +121,19 @@
 
     <section class="panel">
         <div class="panel-header">
-            <h2>Historik</h2>
+            <h2>Admin / Konfiguration</h2>
+            <div class="actions">
+                <button id="loadConfigBtn" class="btn secondary" type="button">Ladda config</button>
+                <button id="exportRulesBtn" class="btn secondary" type="button">Exportera regler</button>
+                <button id="importRulesBtn" class="btn secondary" type="button">Importera regler</button>
+            </div>
         </div>
+        <pre id="adminConfigBox" class="codebox">Inte laddad ännu</pre>
+        <textarea id="rulesJsonBox" class="codebox inputbox" placeholder="Här visas exporterad JSON eller klistra in regler för import"></textarea>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header"><h2>Historik</h2></div>
         <div class="table-wrap">
             <table id="historyTable">
                 <thead>
