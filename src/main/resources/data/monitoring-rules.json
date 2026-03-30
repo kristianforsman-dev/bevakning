@@ -36,8 +36,8 @@
     "monthDays": "",
     "specificDates": "",
     "useHistoricalBaseline": false,
-    "historicalDays": 0,
-    "minPercentOfAverage": 0
+    "historicalDays": 10,
+    "minPercentOfAverage": 85
   },
   {
     "id": "rule-003",
@@ -50,14 +50,14 @@
     "minExpected": 1,
     "maxExpected": 5,
     "deadline": "08:30",
-    "warningMinutesBeforeDeadline": 20,
+    "warningMinutesBeforeDeadline": 21,
     "windows": [],
     "weekdays": "MON,TUE,WED,THU,FRI",
     "monthDays": "",
     "specificDates": "",
     "useHistoricalBaseline": false,
-    "historicalDays": 0,
-    "minPercentOfAverage": 0
+    "historicalDays": 10,
+    "minPercentOfAverage": 85
   },
   {
     "id": "rule-004",
@@ -82,12 +82,32 @@
   {
     "id": "rule-56a6faf3-028c-4ff9-ad0c-720ee7ad75e4",
     "sender": "ww",
-    "receiver": "eee",
+    "receiver": "eeed",
     "msgType": "www",
     "description": "www",
     "scheduleType": "DAILY",
     "active": true,
     "minExpected": 1,
+    "maxExpected": 1,
+    "deadline": "15:00",
+    "warningMinutesBeforeDeadline": 60,
+    "windows": [],
+    "weekdays": "",
+    "monthDays": "",
+    "specificDates": "",
+    "useHistoricalBaseline": false,
+    "historicalDays": 10,
+    "minPercentOfAverage": 85
+  },
+  {
+    "id": "rule-26e3ead7-a722-4552-b85f-835a49fe82bb",
+    "sender": "ERP02",
+    "receiver": "AP02",
+    "msgType": "INVOICE2",
+    "description": "",
+    "scheduleType": "DAILY",
+    "active": true,
+    "minExpected": 9,
     "maxExpected": 1,
     "deadline": "15:00",
     "warningMinutesBeforeDeadline": 60,
