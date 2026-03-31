@@ -5,13 +5,33 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class JsonUtils {
+
     private JsonUtils() {
+    }
+
+    public static String readResource(String resourcePath) {
+        String normalized = normalize(resourcePath);
+
+        String fromClasspath = readFromClasspath(normalized);
+        if (fromClasspath != null) {
+            return fromClasspath;
+        }
+
+        String fromSourceResources = readFromSourceResources(normalized);
+        if (fromSourceResources != null) {
+            return fromSourceResources;
+        }
+
+        throw new IllegalStateException("Kunde inte hitta resource: " + resourcePath);
     }
 
     public static Object parseJsonResource(String resourcePath) {
@@ -20,62 +40,132 @@ public final class JsonUtils {
 
     public static Object parseJson(String json) {
         if (json == null) {
-            throw new IllegalArgumentException("JSON får inte vara null");
+            return null;
         }
-        Parser parser = new Parser(json);
-        Object value = parser.parseValue();
-        parser.skipWhitespace();
-        if (!parser.isEnd()) {
-            throw new IllegalStateException("Ogiltig JSON, oväntat innehåll på position " + parser.pos);
+
+        String cleaned = stripBom(json).trim();
+        if (cleaned.isEmpty()) {
+            return null;
+        }
+
+        Object parsed = new Parser(cleaned).parse();
+        return unwrapNestedJsonString(parsed, 0);
+    }
+
+    private static Object unwrapNestedJsonString(Object value, int depth) {
+        if (!(value instanceof String) || depth > 5) {
+            return value;
+        }
+
+        String s = stripBom(((String) value).trim());
+        if (s.isEmpty()) {
+            return s;
+        }
+
+        boolean looksLikeJson =
+                (s.startsWith("{") && s.endsWith("}")) ||
+                (s.startsWith("[") && s.endsWith("]"));
+
+        if (!looksLikeJson) {
+            return value;
+        }
+
+        Object reparsed = new Parser(s).parse();
+        return unwrapNestedJsonString(reparsed, depth + 1);
+    }
+
+    private static String stripBom(String value) {
+        if (value != null && !value.isEmpty() && value.charAt(0) == '\uFEFF') {
+            return value.substring(1);
         }
         return value;
     }
 
-    private static String readResource(String resourcePath) {
-        InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath);
-        if (in == null) {
-            throw new IllegalStateException("Kunde inte hitta resource: " + resourcePath);
+    private static String readFromClasspath(String resourcePath) {
+        ClassLoader cl = Thread.currentThread().getContextClassLoader();
+        if (cl == null) {
+            cl = JsonUtils.class.getClassLoader();
         }
 
-        StringBuilder sb = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line).append('\n');
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException("Kunde inte läsa resource: " + resourcePath, e);
+        InputStream in = cl.getResourceAsStream(resourcePath);
+        if (in == null) {
+            return null;
         }
+
+        try {
+            return readAll(in);
+        } catch (IOException e) {
+            throw new IllegalStateException("Kunde inte läsa resource från classpath: " + resourcePath, e);
+        }
+    }
+
+    private static String readFromSourceResources(String resourcePath) {
+        Path path = Paths.get("src", "main", "resources").resolve(resourcePath);
+        if (!Files.exists(path)) {
+            return null;
+        }
+
+        try {
+            byte[] bytes = Files.readAllBytes(path);
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("Kunde inte läsa resource från filsystem: " + path, e);
+        }
+    }
+
+    private static String readAll(InputStream in) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        StringBuilder sb = new StringBuilder();
+        String line;
+
+        while ((line = reader.readLine()) != null) {
+            sb.append(line).append('\n');
+        }
+
         return sb.toString();
     }
 
+    private static String normalize(String resourcePath) {
+        String value = resourcePath == null ? "" : resourcePath.trim();
+        while (value.startsWith("/")) {
+            value = value.substring(1);
+        }
+        return value;
+    }
+
     private static final class Parser {
-        private final String text;
-        private final int len;
+        private final String json;
         private int pos;
 
-        private Parser(String text) {
-            this.text = text;
-            this.len = text.length();
+        private Parser(String json) {
+            this.json = json;
             this.pos = 0;
+        }
+
+        private Object parse() {
+            skipWhitespace();
+            Object value = parseValue();
+            skipWhitespace();
+            return value;
         }
 
         private Object parseValue() {
             skipWhitespace();
-            if (isEnd()) {
-                throw new IllegalStateException("Ogiltig JSON: tomt innehåll");
+            if (pos >= json.length()) {
+                throw error("Oväntat slut på JSON");
             }
 
-            char c = current();
-            if (c == '{') return parseObject();
-            if (c == '[') return parseArray();
-            if (c == '"') return parseString();
-            if (c == 't') return parseTrue();
-            if (c == 'f') return parseFalse();
-            if (c == 'n') return parseNull();
-            if (c == '-' || isDigit(c)) return parseNumber();
+            char ch = json.charAt(pos);
 
-            throw new IllegalStateException("Ogiltig JSON: oväntat tecken '" + c + "' på position " + pos);
+            if (ch == '{') return parseObject();
+            if (ch == '[') return parseArray();
+            if (ch == '"') return parseString();
+            if (ch == 't') return parseTrue();
+            if (ch == 'f') return parseFalse();
+            if (ch == 'n') return parseNull();
+            if (ch == '-' || Character.isDigit(ch)) return parseNumber();
+
+            throw error("Ogiltigt JSON-värde vid position " + pos);
         }
 
         private Map<String, Object> parseObject() {
@@ -93,6 +183,7 @@ public final class JsonUtils {
                 String key = parseString();
                 skipWhitespace();
                 expect(':');
+                skipWhitespace();
                 Object value = parseValue();
                 map.put(key, value);
                 skipWhitespace();
@@ -119,8 +210,8 @@ public final class JsonUtils {
             }
 
             while (true) {
-                Object value = parseValue();
-                list.add(value);
+                skipWhitespace();
+                list.add(parseValue());
                 skipWhitespace();
 
                 if (peek(']')) {
@@ -138,22 +229,20 @@ public final class JsonUtils {
             expect('"');
             StringBuilder sb = new StringBuilder();
 
-            while (!isEnd()) {
-                char c = current();
-                pos++;
+            while (pos < json.length()) {
+                char ch = json.charAt(pos++);
 
-                if (c == '"') {
+                if (ch == '"') {
                     return sb.toString();
                 }
 
-                if (c == '\\') {
-                    if (isEnd()) {
-                        throw new IllegalStateException("Ogiltig JSON-sträng: avslutas efter escape");
+                if (ch == '\\') {
+                    if (pos >= json.length()) {
+                        throw error("Ogiltig escape i sträng");
                     }
-                    char e = current();
-                    pos++;
 
-                    switch (e) {
+                    char esc = json.charAt(pos++);
+                    switch (esc) {
                         case '"': sb.append('"'); break;
                         case '\\': sb.append('\\'); break;
                         case '/': sb.append('/'); break;
@@ -162,132 +251,98 @@ public final class JsonUtils {
                         case 'n': sb.append('\n'); break;
                         case 'r': sb.append('\r'); break;
                         case 't': sb.append('\t'); break;
-                        case 'u':
-                            sb.append(parseUnicodeEscape());
-                            break;
-                        default:
-                            throw new IllegalStateException("Ogiltig escape-sekvens \\" + e + " på position " + (pos - 1));
+                        case 'u': sb.append(parseUnicode()); break;
+                        default: throw error("Okänd escape-sekvens: \\" + esc);
                     }
                 } else {
-                    sb.append(c);
+                    sb.append(ch);
                 }
             }
 
-            throw new IllegalStateException("Ogiltig JSON-sträng: saknar avslutande citationstecken");
+            throw error("Oavslutad sträng");
         }
 
-        private char parseUnicodeEscape() {
-            if (pos + 4 > len) {
-                throw new IllegalStateException("Ogiltig unicode-escape på position " + pos);
+        private char parseUnicode() {
+            if (pos + 4 > json.length()) {
+                throw error("Ogiltig unicode escape");
             }
-            String hex = text.substring(pos, pos + 4);
+
+            String hex = json.substring(pos, pos + 4);
             pos += 4;
+
             try {
                 return (char) Integer.parseInt(hex, 16);
             } catch (NumberFormatException e) {
-                throw new IllegalStateException("Ogiltig unicode-escape: \\u" + hex);
+                throw error("Ogiltig unicode escape: " + hex);
             }
         }
 
         private Boolean parseTrue() {
-            expectLiteral("true");
+            expectWord("true");
             return Boolean.TRUE;
         }
 
         private Boolean parseFalse() {
-            expectLiteral("false");
+            expectWord("false");
             return Boolean.FALSE;
         }
 
         private Object parseNull() {
-            expectLiteral("null");
+            expectWord("null");
             return null;
         }
 
         private Number parseNumber() {
             int start = pos;
 
-            if (peek('-')) {
+            if (json.charAt(pos) == '-') {
                 pos++;
             }
 
-            if (isEnd()) {
-                throw new IllegalStateException("Ogiltigt nummer på position " + start);
-            }
-
-            if (peek('0')) {
+            while (pos < json.length() && Character.isDigit(json.charAt(pos))) {
                 pos++;
-            } else {
-                if (!isDigit(current())) {
-                    throw new IllegalStateException("Ogiltigt nummer på position " + start);
-                }
-                while (!isEnd() && isDigit(current())) {
-                    pos++;
-                }
             }
 
             boolean isDecimal = false;
 
-            if (!isEnd() && peek('.')) {
+            if (pos < json.length() && json.charAt(pos) == '.') {
                 isDecimal = true;
                 pos++;
-                if (isEnd() || !isDigit(current())) {
-                    throw new IllegalStateException("Ogiltigt decimalnummer på position " + start);
-                }
-                while (!isEnd() && isDigit(current())) {
+                while (pos < json.length() && Character.isDigit(json.charAt(pos))) {
                     pos++;
                 }
             }
 
-            if (!isEnd() && (peek('e') || peek('E'))) {
-                isDecimal = true;
-                pos++;
-                if (!isEnd() && (peek('+') || peek('-'))) {
+            if (pos < json.length()) {
+                char ch = json.charAt(pos);
+                if (ch == 'e' || ch == 'E') {
+                    isDecimal = true;
                     pos++;
-                }
-                if (isEnd() || !isDigit(current())) {
-                    throw new IllegalStateException("Ogiltig exponent i nummer på position " + start);
-                }
-                while (!isEnd() && isDigit(current())) {
-                    pos++;
+                    if (pos < json.length() && (json.charAt(pos) == '+' || json.charAt(pos) == '-')) {
+                        pos++;
+                    }
+                    while (pos < json.length() && Character.isDigit(json.charAt(pos))) {
+                        pos++;
+                    }
                 }
             }
 
-            String number = text.substring(start, pos);
+            String value = json.substring(start, pos);
+
             try {
                 if (isDecimal) {
-                    return Double.valueOf(number);
+                    return Double.valueOf(value);
                 }
-                long longValue = Long.parseLong(number);
-                if (longValue >= Integer.MIN_VALUE && longValue <= Integer.MAX_VALUE) {
-                    return Integer.valueOf((int) longValue);
-                }
-                return Long.valueOf(longValue);
+                return Long.valueOf(value);
             } catch (NumberFormatException e) {
-                throw new IllegalStateException("Ogiltigt nummer: " + number, e);
+                throw error("Ogiltigt tal: " + value);
             }
-        }
-
-        private void expect(char expected) {
-            skipWhitespace();
-            if (isEnd() || current() != expected) {
-                throw new IllegalStateException("Förväntade '" + expected + "' på position " + pos);
-            }
-            pos++;
-        }
-
-        private void expectLiteral(String literal) {
-            skipWhitespace();
-            if (pos + literal.length() > len || !text.substring(pos, pos + literal.length()).equals(literal)) {
-                throw new IllegalStateException("Förväntade \"" + literal + "\" på position " + pos);
-            }
-            pos += literal.length();
         }
 
         private void skipWhitespace() {
-            while (!isEnd()) {
-                char c = current();
-                if (c == ' ' || c == '\n' || c == '\r' || c == '\t') {
+            while (pos < json.length()) {
+                char ch = json.charAt(pos);
+                if (ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t') {
                     pos++;
                 } else {
                     break;
@@ -296,19 +351,31 @@ public final class JsonUtils {
         }
 
         private boolean peek(char expected) {
-            return !isEnd() && current() == expected;
+            return pos < json.length() && json.charAt(pos) == expected;
         }
 
-        private char current() {
-            return text.charAt(pos);
+        private void expect(char expected) {
+            if (pos >= json.length() || json.charAt(pos) != expected) {
+                throw error("Förväntade '" + expected + "' vid position " + pos);
+            }
+            pos++;
         }
 
-        private boolean isEnd() {
-            return pos >= len;
+        private void expectWord(String word) {
+            if (pos + word.length() > json.length()) {
+                throw error("Förväntade \"" + word + "\"");
+            }
+
+            String actual = json.substring(pos, pos + word.length());
+            if (!word.equals(actual)) {
+                throw error("Förväntade \"" + word + "\" men fick \"" + actual + "\"");
+            }
+
+            pos += word.length();
         }
 
-        private boolean isDigit(char c) {
-            return c >= '0' && c <= '9';
+        private IllegalStateException error(String message) {
+            return new IllegalStateException(message);
         }
     }
 }

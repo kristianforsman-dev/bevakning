@@ -12,7 +12,7 @@ import java.util.Map;
 public class JsonMonitoringRuleRepository implements MonitoringRuleRepository {
     @Override
     public List<MonitoringRule> findAllRules() {
-        List<Map<String, Object>> rows = castList(JsonUtils.parseJsonResource("data/monitoring-rules.json"));
+        List<Map<String, Object>> rows = castList(JsonUtils.readResource("data/monitoring-rules.json"));
         return toRules(rows);
     }
 

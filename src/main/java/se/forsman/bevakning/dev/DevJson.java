@@ -5,13 +5,16 @@ import se.forsman.bevakning.domain.DashboardSnapshot;
 import se.forsman.bevakning.domain.MonitoringRule;
 import se.forsman.bevakning.domain.MonitoringWindow;
 import se.forsman.bevakning.domain.RuleEvaluation;
-import se.forsman.bevakning.web.json.JsonResponseUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public final class DevJson {
     private DevJson() {
+    }
+
+    public static String dashboard(DashboardSnapshot snapshot) {
+        return dashboard(snapshot, LocalDateTime.now());
     }
 
     public static String dashboard(DashboardSnapshot snapshot, LocalDateTime refreshedAt) {
@@ -23,25 +26,36 @@ public final class DevJson {
         sb.append("\"warning\":").append(snapshot.getWarning()).append(",");
         sb.append("\"error\":").append(snapshot.getError()).append(",");
         sb.append("\"backendOk\":").append(snapshot.isBackendOk()).append(",");
-        sb.append("\"backendMessage\":\"").append(JsonResponseUtils.escape(snapshot.getBackendMessage())).append("\",");
-        sb.append("\"refreshedAt\":\"").append(JsonResponseUtils.escape(refreshedAt == null ? "" : refreshedAt.toString())).append("\",");
+        sb.append("\"backendMessage\":\"").append(escape(snapshot.getBackendMessage())).append("\",");
+        sb.append("\"refreshedAt\":\"").append(escape(refreshedAt == null ? "" : refreshedAt.toString())).append("\",");
         sb.append("\"rows\":[");
+
         for (int i = 0; i < snapshot.getRows().size(); i++) {
             RuleEvaluation row = snapshot.getRows().get(i);
-            if (i > 0) sb.append(",");
+            if (i > 0) {
+                sb.append(",");
+            }
+
             sb.append("{");
-            sb.append("\"id\":\"").append(JsonResponseUtils.escape(row.getRule().getId())).append("\",");
-            sb.append("\"sender\":\"").append(JsonResponseUtils.escape(row.getRule().getSender())).append("\",");
-            sb.append("\"receiver\":\"").append(JsonResponseUtils.escape(row.getRule().getReceiver())).append("\",");
-            sb.append("\"msgType\":\"").append(JsonResponseUtils.escape(row.getRule().getMsgType())).append("\",");
-            sb.append("\"description\":\"").append(JsonResponseUtils.escape(row.getRule().getDescription())).append("\",");
-            sb.append("\"scheduleType\":\"").append(JsonResponseUtils.escape(row.getRule().getScheduleType())).append("\",");
-            sb.append("\"status\":\"").append(JsonResponseUtils.escape(row.getStatus().name())).append("\",");
+            sb.append("\"id\":\"").append(escape(row.getRule().getId())).append("\",");
+            sb.append("\"sender\":\"").append(escape(row.getRule().getSender())).append("\",");
+            sb.append("\"receiver\":\"").append(escape(row.getRule().getReceiver())).append("\",");
+            sb.append("\"msgType\":\"").append(escape(row.getRule().getMsgType())).append("\",");
+            sb.append("\"description\":\"").append(escape(row.getRule().getDescription())).append("\",");
+            sb.append("\"scheduleType\":\"").append(escape(row.getRule().getScheduleType())).append("\",");
+            sb.append("\"status\":\"").append(escape(row.getStatus().name())).append("\",");
             sb.append("\"countToday\":").append(row.getCountToday()).append(",");
-            sb.append("\"deadline\":\"").append(JsonResponseUtils.escape(row.getCurrentDeadline())).append("\",");
-            sb.append("\"message\":\"").append(JsonResponseUtils.escape(row.getMessage())).append("\"");
+            sb.append("\"deadline\":\"").append(escape(row.getCurrentDeadline())).append("\",");
+            sb.append("\"message\":\"").append(escape(row.getMessage())).append("\",");
+
+            sb.append("\"occurrenceKey\":\"").append(escape(row.getOccurrenceKey())).append("\",");
+            sb.append("\"acknowledged\":").append(row.isAcknowledged()).append(",");
+            sb.append("\"acknowledgedBy\":\"").append(escape(row.getAcknowledgedBy())).append("\",");
+            sb.append("\"acknowledgedAt\":\"").append(escape(row.getAcknowledgedAt())).append("\"");
+
             sb.append("}");
         }
+
         sb.append("]");
         sb.append("}");
         return sb.toString();
@@ -50,30 +64,35 @@ public final class DevJson {
     public static String rules(List<MonitoringRule> rules) {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
+
         for (int i = 0; i < rules.size(); i++) {
-            MonitoringRule r = rules.get(i);
-            if (i > 0) sb.append(",");
+            MonitoringRule rule = rules.get(i);
+            if (i > 0) {
+                sb.append(",");
+            }
+
             sb.append("{");
-            sb.append("\"id\":\"").append(JsonResponseUtils.escape(r.getId())).append("\",");
-            sb.append("\"sender\":\"").append(JsonResponseUtils.escape(r.getSender())).append("\",");
-            sb.append("\"receiver\":\"").append(JsonResponseUtils.escape(r.getReceiver())).append("\",");
-            sb.append("\"msgType\":\"").append(JsonResponseUtils.escape(r.getMsgType())).append("\",");
-            sb.append("\"description\":\"").append(JsonResponseUtils.escape(r.getDescription())).append("\",");
-            sb.append("\"scheduleType\":\"").append(JsonResponseUtils.escape(r.getScheduleType())).append("\",");
-            sb.append("\"active\":").append(r.isActive()).append(",");
-            sb.append("\"minExpected\":").append(r.getMinExpected()).append(",");
-            sb.append("\"maxExpected\":").append(r.getMaxExpected()).append(",");
-            sb.append("\"deadline\":\"").append(JsonResponseUtils.escape(r.getDeadline())).append("\",");
-            sb.append("\"warningMinutesBeforeDeadline\":").append(r.getWarningMinutesBeforeDeadline()).append(",");
-            sb.append("\"weekdays\":\"").append(JsonResponseUtils.escape(r.getWeekdays())).append("\",");
-            sb.append("\"monthDays\":\"").append(JsonResponseUtils.escape(r.getMonthDays())).append("\",");
-            sb.append("\"specificDates\":\"").append(JsonResponseUtils.escape(r.getSpecificDates())).append("\",");
-            sb.append("\"useHistoricalBaseline\":").append(r.isUseHistoricalBaseline()).append(",");
-            sb.append("\"historicalDays\":").append(r.getHistoricalDays()).append(",");
-            sb.append("\"minPercentOfAverage\":").append(r.getMinPercentOfAverage()).append(",");
-            sb.append("\"windowsSpec\":\"").append(JsonResponseUtils.escape(toWindowsSpec(r.getWindows()))).append("\"");
+            sb.append("\"id\":\"").append(escape(rule.getId())).append("\",");
+            sb.append("\"sender\":\"").append(escape(rule.getSender())).append("\",");
+            sb.append("\"receiver\":\"").append(escape(rule.getReceiver())).append("\",");
+            sb.append("\"msgType\":\"").append(escape(rule.getMsgType())).append("\",");
+            sb.append("\"description\":\"").append(escape(rule.getDescription())).append("\",");
+            sb.append("\"scheduleType\":\"").append(escape(rule.getScheduleType())).append("\",");
+            sb.append("\"active\":").append(rule.isActive()).append(",");
+            sb.append("\"minExpected\":").append(rule.getMinExpected()).append(",");
+            sb.append("\"maxExpected\":").append(rule.getMaxExpected()).append(",");
+            sb.append("\"deadline\":\"").append(escape(rule.getDeadline())).append("\",");
+            sb.append("\"warningMinutesBeforeDeadline\":").append(rule.getWarningMinutesBeforeDeadline()).append(",");
+            sb.append("\"weekdays\":\"").append(escape(rule.getWeekdays())).append("\",");
+            sb.append("\"monthDays\":\"").append(escape(rule.getMonthDays())).append("\",");
+            sb.append("\"specificDates\":\"").append(escape(rule.getSpecificDates())).append("\",");
+            sb.append("\"useHistoricalBaseline\":").append(rule.isUseHistoricalBaseline()).append(",");
+            sb.append("\"historicalDays\":").append(rule.getHistoricalDays()).append(",");
+            sb.append("\"minPercentOfAverage\":").append(rule.getMinPercentOfAverage()).append(",");
+            sb.append("\"windowsSpec\":\"").append(escape(toWindowsSpec(rule.getWindows()))).append("\"");
             sb.append("}");
         }
+
         sb.append("]");
         return sb.toString();
     }
@@ -81,42 +100,93 @@ public final class DevJson {
     public static String history(List<AlertHistoryEntry> rows) {
         StringBuilder sb = new StringBuilder();
         sb.append("[");
+
         for (int i = 0; i < rows.size(); i++) {
             AlertHistoryEntry row = rows.get(i);
-            if (i > 0) sb.append(",");
+            if (i > 0) {
+                sb.append(",");
+            }
+
             sb.append("{");
-            sb.append("\"id\":\"").append(JsonResponseUtils.escape(row.getId())).append("\",");
-            sb.append("\"ruleId\":\"").append(JsonResponseUtils.escape(row.getRuleId())).append("\",");
-            sb.append("\"eventType\":\"").append(JsonResponseUtils.escape(row.getEventType())).append("\",");
-            sb.append("\"status\":\"").append(JsonResponseUtils.escape(row.getStatus())).append("\",");
-            sb.append("\"message\":\"").append(JsonResponseUtils.escape(row.getMessage())).append("\",");
-            sb.append("\"createdAt\":\"").append(JsonResponseUtils.escape(row.getCreatedAt())).append("\",");
-            sb.append("\"createdBy\":\"").append(JsonResponseUtils.escape(row.getCreatedBy())).append("\"");
+            sb.append("\"id\":\"").append(escape(row.getId())).append("\",");
+            sb.append("\"ruleId\":\"").append(escape(row.getRuleId())).append("\",");
+            sb.append("\"occurrenceKey\":\"").append(escape(row.getOccurrenceKey())).append("\",");
+            sb.append("\"eventType\":\"").append(escape(row.getEventType())).append("\",");
+            sb.append("\"status\":\"").append(escape(row.getStatus())).append("\",");
+            sb.append("\"message\":\"").append(escape(row.getMessage())).append("\",");
+            sb.append("\"createdAt\":\"").append(escape(row.getCreatedAt())).append("\",");
+            sb.append("\"createdBy\":\"").append(escape(row.getCreatedBy())).append("\"");
             sb.append("}");
         }
+
         sb.append("]");
         return sb.toString();
     }
 
-    public static String health(String mode, String source) {
-        return JsonResponseUtils.health("UP", mode, source);
-    }
-
-    public static String error(String message) {
-        return JsonResponseUtils.error(message);
+    public static String config(String appMode,
+                                int refreshSeconds,
+                                String db2JndiName,
+                                String db2QueryMode,
+                                String db2Schema,
+                                int db2LookbackDays,
+                                String sourceDescription) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        sb.append("\"appMode\":\"").append(escape(appMode)).append("\",");
+        sb.append("\"refreshSeconds\":").append(refreshSeconds).append(",");
+        sb.append("\"db2JndiName\":\"").append(escape(db2JndiName)).append("\",");
+        sb.append("\"db2QueryMode\":\"").append(escape(db2QueryMode)).append("\",");
+        sb.append("\"db2Schema\":\"").append(escape(db2Schema)).append("\",");
+        sb.append("\"db2LookbackDays\":").append(db2LookbackDays).append(",");
+        sb.append("\"sourceDescription\":\"").append(escape(sourceDescription)).append("\"");
+        sb.append("}");
+        return sb.toString();
     }
 
     public static String okMessage(String message) {
-        return JsonResponseUtils.message(message);
+        return "{\"message\":\"" + escape(message) + "\"}";
+    }
+
+    public static String message(String key, String value) {
+        return "{\"" + escape(key) + "\":\"" + escape(value) + "\"}";
+    }
+
+    public static String error(String message) {
+        return message("error", message == null ? "Tekniskt fel" : message);
+    }
+
+    public static String health(String mode, String source) {
+        return "{"
+                + "\"status\":\"UP\","
+                + "\"mode\":\"" + escape(mode) + "\","
+                + "\"source\":\"" + escape(source) + "\""
+                + "}";
     }
 
     private static String toWindowsSpec(List<MonitoringWindow> windows) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < windows.size(); i++) {
-            MonitoringWindow w = windows.get(i);
-            if (i > 0) sb.append("\n");
-            sb.append(w.getDeadline()).append("|").append(w.getMinExpected()).append("|").append(w.getMaxExpected());
+            MonitoringWindow window = windows.get(i);
+            if (i > 0) {
+                sb.append("\n");
+            }
+            sb.append(window.getDeadline())
+              .append("|")
+              .append(window.getMinExpected())
+              .append("|")
+              .append(window.getMaxExpected());
         }
         return sb.toString();
+    }
+
+    private static String escape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

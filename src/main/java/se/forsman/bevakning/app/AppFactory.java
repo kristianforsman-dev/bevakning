@@ -51,21 +51,26 @@ public final class AppFactory {
 
         EditableMonitoringRuleRepository ruleRepository =
                 new FileMonitoringRuleRepository(config.get("app.data.rules.path"));
-
         MonitoringRuleRepository monitoringRuleRepository = ruleRepository;
-        MonitoringEngine monitoringEngine = new MonitoringEngine();
-        DashboardService dashboardService = new DashboardService(
-                flowRepository,
-                monitoringRuleRepository,
-                monitoringEngine,
-                config.getInt("db2.lookback.days", 14)
-        );
-        RuleService ruleService = new RuleService(ruleRepository);
 
         AcknowledgementRepository acknowledgementRepository =
                 new FileAcknowledgementRepository(config.get("app.data.acks.path"));
         AlertHistoryRepository alertHistoryRepository =
                 new FileAlertHistoryRepository(config.get("app.data.alerts.path"));
+
+        MonitoringEngine monitoringEngine = new MonitoringEngine();
+
+        DashboardService dashboardService = new DashboardService(
+                flowRepository,
+                monitoringRuleRepository,
+                alertHistoryRepository,
+                acknowledgementRepository,
+                monitoringEngine,
+                config.getInt("db2.lookback.days", 14)
+        );
+
+        RuleService ruleService = new RuleService(ruleRepository);
+
         AcknowledgementService acknowledgementService =
                 new AcknowledgementService(acknowledgementRepository, alertHistoryRepository);
 

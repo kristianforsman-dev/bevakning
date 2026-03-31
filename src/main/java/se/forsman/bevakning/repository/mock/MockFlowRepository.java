@@ -14,14 +14,17 @@ import java.util.Map;
 public class MockFlowRepository implements FlowRepository {
     @Override
     public List<FlowEvent> findAllFlowEvents() {
-        List<Map<String, Object>> instances = castList(JsonUtils.parseJsonResource("mockdb/process_instance.json"));
-        List<Map<String, Object>> attributes = castList(JsonUtils.parseJsonResource("mockdb/process_attribute.json"));
+        List<Map<String, Object>> instances =
+                castList(JsonUtils.parseJson(JsonUtils.readResource("mockdb/process_instance.json")));
+        List<Map<String, Object>> attributes =
+                castList(JsonUtils.parseJson(JsonUtils.readResource("mockdb/process_attribute.json")));
 
         Map<Long, Map<String, String>> attrsByPiid = new HashMap<Long, Map<String, String>>();
         for (Map<String, Object> row : attributes) {
             Long piid = toLong(row.get("piid"));
             String name = stringValue(row.get("name"));
             String value = stringValue(row.get("value"));
+
             Map<String, String> map = attrsByPiid.get(piid);
             if (map == null) {
                 map = new HashMap<String, String>();
@@ -65,7 +68,22 @@ public class MockFlowRepository implements FlowRepository {
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> castList(Object value) {
-        return (List<Map<String, Object>>) value;
+        if (value == null) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        if (value instanceof List) {
+            return (List<Map<String, Object>>) value;
+        }
+
+        if (value instanceof String) {
+            Object reparsed = JsonUtils.parseJson((String) value);
+            if (reparsed instanceof List) {
+                return (List<Map<String, Object>>) reparsed;
+            }
+        }
+
+        throw new IllegalStateException("Förväntade lista men fick: " + value.getClass().getName());
     }
 
     private Long toLong(Object value) {

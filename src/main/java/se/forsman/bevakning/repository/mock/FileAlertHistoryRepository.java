@@ -25,6 +25,7 @@ public class FileAlertHistoryRepository implements AlertHistoryRepository {
             result.add(new AlertHistoryEntry(
                     stringValue(row.get("id")),
                     stringValue(row.get("ruleId")),
+                    stringValue(row.get("occurrenceKey")),
                     stringValue(row.get("eventType")),
                     stringValue(row.get("status")),
                     stringValue(row.get("message")),
@@ -44,7 +45,22 @@ public class FileAlertHistoryRepository implements AlertHistoryRepository {
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> castList(Object value) {
-        return (List<Map<String, Object>>) value;
+        if (value == null) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        if (value instanceof List) {
+            return (List<Map<String, Object>>) value;
+        }
+
+        if (value instanceof String) {
+            Object reparsed = JsonUtils.parseJson((String) value);
+            if (reparsed instanceof List) {
+                return (List<Map<String, Object>>) reparsed;
+            }
+        }
+
+        throw new IllegalStateException("Förväntade JSON-lista men fick: " + value.getClass().getName());
     }
 
     private void writeAll(List<AlertHistoryEntry> rows) {
@@ -56,6 +72,7 @@ public class FileAlertHistoryRepository implements AlertHistoryRepository {
             sb.append("  {");
             sb.append("\"id\": \"").append(escape(row.getId())).append("\", ");
             sb.append("\"ruleId\": \"").append(escape(row.getRuleId())).append("\", ");
+            sb.append("\"occurrenceKey\": \"").append(escape(row.getOccurrenceKey())).append("\", ");
             sb.append("\"eventType\": \"").append(escape(row.getEventType())).append("\", ");
             sb.append("\"status\": \"").append(escape(row.getStatus())).append("\", ");
             sb.append("\"message\": \"").append(escape(row.getMessage())).append("\", ");

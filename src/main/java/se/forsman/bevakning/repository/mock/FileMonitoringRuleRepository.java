@@ -21,7 +21,8 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
 
     @Override
     public synchronized List<MonitoringRule> findAllRules() {
-        List<Map<String, Object>> rows = castList(JsonUtils.parseJson(FileJsonStore.readFile(filePath)));
+        Object parsed = JsonUtils.parseJson(FileJsonStore.readFile(filePath));
+        List<Map<String, Object>> rows = castList(parsed);
         return toRules(rows);
     }
 
@@ -70,23 +71,38 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> castList(Object value) {
-        return (List<Map<String, Object>>) value;
+        if (value == null) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        if (value instanceof List) {
+            return (List<Map<String, Object>>) value;
+        }
+
+        if (value instanceof String) {
+            Object reparsed = JsonUtils.parseJson((String) value);
+            if (reparsed instanceof List) {
+                return (List<Map<String, Object>>) reparsed;
+            }
+        }
+
+        throw new IllegalStateException("Förväntade lista men fick: " + value.getClass().getName());
     }
 
     private List<MonitoringRule> toRules(List<Map<String, Object>> rows) {
         List<MonitoringRule> result = new ArrayList<MonitoringRule>();
+
         for (Map<String, Object> row : rows) {
             List<MonitoringWindow> windows = new ArrayList<MonitoringWindow>();
             Object windowsObj = row.get("windows");
-            if (windowsObj instanceof List) {
-                List<Map<String, Object>> list = castList(windowsObj);
-                for (Map<String, Object> windowRow : list) {
-                    windows.add(new MonitoringWindow(
-                            stringValue(windowRow.get("deadline")),
-                            toInt(windowRow.get("minExpected")),
-                            toInt(windowRow.get("maxExpected"))
-                    ));
-                }
+
+            List<Map<String, Object>> windowRows = tryCastWindowList(windowsObj);
+            for (Map<String, Object> windowRow : windowRows) {
+                windows.add(new MonitoringWindow(
+                        stringValue(windowRow.get("deadline")),
+                        toInt(windowRow.get("minExpected")),
+                        toInt(windowRow.get("maxExpected"))
+                ));
             }
 
             result.add(new MonitoringRule(
@@ -110,15 +126,42 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
                     toInt(row.get("minPercentOfAverage"))
             ));
         }
+
         return result;
+    }
+
+    private List<Map<String, Object>> tryCastWindowList(Object value) {
+        if (value == null) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        if (value instanceof List) {
+            return castList(value);
+        }
+
+        if (value instanceof String) {
+            String s = String.valueOf(value).trim();
+            if (s.isEmpty()) {
+                return new ArrayList<Map<String, Object>>();
+            }
+
+            Object reparsed = JsonUtils.parseJson(s);
+            if (reparsed instanceof List) {
+                return castList(reparsed);
+            }
+        }
+
+        return new ArrayList<Map<String, Object>>();
     }
 
     private void writeRules(List<MonitoringRule> rules) {
         StringBuilder sb = new StringBuilder();
         sb.append("[\n");
+
         for (int i = 0; i < rules.size(); i++) {
             MonitoringRule rule = rules.get(i);
             if (i > 0) sb.append(",\n");
+
             sb.append("  {\n");
             sb.append("    \"id\": \"").append(escape(rule.getId())).append("\",\n");
             sb.append("    \"sender\": \"").append(escape(rule.getSender())).append("\",\n");
@@ -131,6 +174,7 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
             sb.append("    \"maxExpected\": ").append(rule.getMaxExpected()).append(",\n");
             sb.append("    \"deadline\": \"").append(escape(rule.getDeadline())).append("\",\n");
             sb.append("    \"warningMinutesBeforeDeadline\": ").append(rule.getWarningMinutesBeforeDeadline()).append(",\n");
+
             sb.append("    \"windows\": [");
             for (int w = 0; w < rule.getWindows().size(); w++) {
                 MonitoringWindow window = rule.getWindows().get(w);
@@ -142,6 +186,7 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
                 sb.append("}");
             }
             sb.append("],\n");
+
             sb.append("    \"weekdays\": \"").append(escape(rule.getWeekdays())).append("\",\n");
             sb.append("    \"monthDays\": \"").append(escape(rule.getMonthDays())).append("\",\n");
             sb.append("    \"specificDates\": \"").append(escape(rule.getSpecificDates())).append("\",\n");
@@ -150,6 +195,7 @@ public class FileMonitoringRuleRepository implements EditableMonitoringRuleRepos
             sb.append("    \"minPercentOfAverage\": ").append(rule.getMinPercentOfAverage()).append("\n");
             sb.append("  }");
         }
+
         sb.append("\n]\n");
         FileJsonStore.writeFile(filePath, sb.toString());
     }

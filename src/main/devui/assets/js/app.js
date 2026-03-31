@@ -63,6 +63,50 @@ document.addEventListener('DOMContentLoaded', function () {
         return map[status] || status || '';
     }
 
+    function friendlyHistoryEvent(eventType) {
+        const map = {
+            STATUS_DETECTED: 'Status upptäckt',
+            STATUS_CHANGED: 'Status ändrad',
+            OCCURRENCE_STARTED: 'Ny instans',
+            ACKNOWLEDGED: 'Kvitterad'
+        };
+        return map[eventType] || eventType || '';
+    }
+
+    function friendlyOccurrenceKey(value) {
+        if (!value) return '';
+        const parts = String(value).split('|');
+        if (parts.length >= 3) {
+            return parts[1] + ' · ' + parts[2];
+        }
+        if (parts.length === 2) {
+            return parts[1];
+        }
+        return value;
+    }
+
+    function formatAckTimestamp(value) {
+        if (!value) return '';
+        return formatTimestamp(value);
+    }
+
+    function isAckRelevant(row) {
+        return !!(row && (row.status === 'WARNING' || row.status === 'ERROR'));
+    }
+
+    function ackInfoText(row) {
+        if (!isAckRelevant(row)) return '';
+        if (!row.acknowledged) return 'Ej kvitterad';
+
+        const by = row.acknowledgedBy || 'okänd';
+        const at = formatAckTimestamp(row.acknowledgedAt || '');
+        if (at) {
+            return 'Kvitterad av ' + by + ' · ' + at;
+        }
+        return 'Kvitterad av ' + by;
+    }
+
+
     function statusClass(status) {
         return 'status-' + String(status || '').toLowerCase();
     }
@@ -342,7 +386,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const row = selectedRuleId ? findRowById(selectedRuleId) : null;
             if (qs('editorAckBtn')) {
-                qs('editorAckBtn').classList.toggle('hidden', !(row && (row.status === 'WARNING' || row.status === 'ERROR')));
+                const canAcknowledge = row
+                    && (row.status === 'WARNING' || row.status === 'ERROR')
+                    && !row.acknowledged;
+                qs('editorAckBtn').classList.toggle('hidden', !canAcknowledge);
             }
             return;
         }
@@ -358,17 +405,36 @@ document.addEventListener('DOMContentLoaded', function () {
     function fillStatusBar(row) {
         const statusEl = qs('editorCurrentStatus');
         const countEl = qs('editorCurrentCount');
+        const ackEl = qs('editorAckInfo');
+        const ackWrap = ackEl ? ackEl.closest('.editor-status-item') : null;
 
         if (!statusEl || !countEl) return;
 
         if (!row) {
             statusEl.textContent = '-';
             countEl.textContent = '-';
+            if (ackEl) ackEl.textContent = '';
+            if (ackWrap) ackWrap.classList.add('hidden');
             return;
         }
 
         statusEl.innerHTML = `<span class="status-chip ${statusClass(row.status)}">${escapeHtml(swedishStatus(row.status))}</span>`;
         countEl.textContent = 'Idag: ' + String(row.countToday || 0);
+
+        if (ackEl) {
+            if (!isAckRelevant(row)) {
+                ackEl.textContent = '';
+                if (ackWrap) ackWrap.classList.add('hidden');
+            } else if (row.acknowledged) {
+                const by = row.acknowledgedBy || 'okänd';
+                const at = row.acknowledgedAt ? formatTimestamp(row.acknowledgedAt) : '';
+                ackEl.innerHTML = `<span class="ack-meta">Kvitterad av ${escapeHtml(by)}${at ? ' · ' + escapeHtml(at) : ''}</span>`;
+                if (ackWrap) ackWrap.classList.remove('hidden');
+            } else {
+                ackEl.textContent = 'Ej kvitterad';
+                if (ackWrap) ackWrap.classList.remove('hidden');
+            }
+        }
     }
 
     function renderEditorHistory(ruleId) {
@@ -398,14 +464,18 @@ document.addEventListener('DOMContentLoaded', function () {
         rows.slice(0, 8).forEach(function (row) {
             const item = document.createElement('div');
             item.className = 'timeline-item ' + statusClass(row.status || '');
+            const isAckEvent = (row.eventType || '') === 'ACKNOWLEDGED';
             item.innerHTML = `
-                <div class="timeline-top">
-                    <span class="timeline-status">${escapeHtml(swedishStatus(row.status || ''))}</span>
-                    <span class="timeline-time">${escapeHtml(formatTimestamp(row.createdAt || ''))}</span>
+                <div class="timeline-head">
+                    <div class="timeline-event">${escapeHtml(friendlyHistoryEvent(row.eventType || ''))}</div>
+                    <div class="timeline-time">${escapeHtml(formatTimestamp(row.createdAt || ''))}</div>
                 </div>
-                <div class="timeline-event">${escapeHtml(row.eventType || '-')}</div>
+                <div class="timeline-sub">
+                    ${isAckEvent ? '' : `<span class="timeline-status-badge ${statusClass(row.status || '')}">${escapeHtml(swedishStatus(row.status || ''))}</span>`}
+                    <span class="timeline-meta">${escapeHtml(row.createdBy || 'okänd')}</span>
+                    ${row.occurrenceKey ? `<span class="timeline-occurrence">${escapeHtml(friendlyOccurrenceKey(row.occurrenceKey || ''))}</span>` : ''}
+                </div>
                 <div class="timeline-message">${escapeHtml(row.message || '-')}</div>
-                <div class="timeline-meta">${escapeHtml(row.createdBy || 'okänd')}</div>
             `;
             list.appendChild(item);
         });
@@ -565,7 +635,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td class="mono">${escapeHtml(row.sender)}</td>
                 <td class="mono">${escapeHtml(row.receiver)}</td>
                 <td class="mono">${escapeHtml(row.msgType)}</td>
-                <td><span class="status-chip ${statusClass(row.status)}">${escapeHtml(swedishStatus(row.status))}</span></td>
+                <td>
+                    <span class="ack-inline">
+                        <span class="status-chip ${statusClass(row.status)}">${escapeHtml(swedishStatus(row.status))}</span>
+                        ${row.acknowledged ? '<span class="ack-badge">Kvitterad</span>' : ''}
+                    </span>
+                </td>
                 <td>${escapeHtml(row.countToday)}</td>
                 <td class="mono">${escapeHtml(row.deadline)}</td>
                 <td>${escapeHtml(describeApplicability(rule))}</td>
@@ -775,7 +850,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         on('editorAckBtn', 'click', async function () {
             const row = findRowById(selectedRuleId);
-            if (!selectedRuleId || !row) return;
+            if (!selectedRuleId || !row || row.acknowledged) return;
             await acknowledge(selectedRuleId, row.status);
         });
     }

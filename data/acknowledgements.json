@@ -1,0 +1,12 @@
+[
+  {"id": "ack-ead892bc-062a-47e8-966a-567dae75383e", "ruleId": "rule-003", "occurrenceKey": "", "status": "ERROR", "comment": "ll", "acknowledgedBy": "ll", "acknowledgedAt": "2026-03-26T13:15:36.784283550"},
+  {"id": "ack-e3564e3a-1d44-442e-9788-1b98581ef039", "ruleId": "rule-003", "occurrenceKey": "", "status": "ERROR", "comment": "åå", "acknowledgedBy": "uuiuiu", "acknowledgedAt": "2026-03-30T10:01:25.487126661"},
+  {"id": "ack-ab484e6e-6c06-4aea-8aec-358a6fb1b3b5", "ruleId": "rule-002", "occurrenceKey": "", "status": "ERROR", "comment": "estar att kvittera", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:05:47.675137908"},
+  {"id": "ack-43c2a206-e3b9-4682-9fd0-29cf6063a438", "ruleId": "rule-003", "occurrenceKey": "", "status": "ERROR", "comment": "ere", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:51:45.315911846"},
+  {"id": "ack-9beed0f8-7e60-459e-b197-bb113cf37b04", "ruleId": "rule-003", "occurrenceKey": "", "status": "ERROR", "comment": "testar att kvittera", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:58:20.854847864"},
+  {"id": "ack-bc2b56fe-d27e-4096-8f91-5f0c11398960", "ruleId": "rule-002", "occurrenceKey": "", "status": "ERROR", "comment": "", "acknowledgedBy": "user", "acknowledgedAt": "2026-03-30T11:04:20.112514554"},
+  {"id": "ack-2aa01880-c324-46a5-bfb3-25720ab56392", "ruleId": "rule-002", "occurrenceKey": "", "status": "ERROR", "comment": "ffdg", "acknowledgedBy": "fdg", "acknowledgedAt": "2026-03-30T11:04:26.076060458"},
+  {"id": "ack-943672e9-7dcd-4d6e-9f6e-b154392c2e27", "ruleId": "rule-002", "occurrenceKey": "rule-002|2026-03-31|02:15", "status": "ERROR", "comment": "Jag kviterar", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-31T05:02:10.648579183"},
+  {"id": "ack-8df6213c-d42c-41b1-9139-2cbc82b453df", "ruleId": "rule-002", "occurrenceKey": "rule-002|2026-03-31|02:15", "status": "ERROR", "comment": "kjhkj", "acknowledgedBy": "user", "acknowledgedAt": "2026-03-31T05:18:39.188304670"},
+  {"id": "ack-ed1266a5-0492-49c9-a367-48b91a82e647", "ruleId": "rule-002", "occurrenceKey": "rule-002|2026-03-31|02:15", "status": "ERROR", "comment": "dsdfdsf", "acknowledgedBy": "sddf", "acknowledgedAt": "2026-03-31T05:25:15.162933333"}
+]

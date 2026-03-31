@@ -14,19 +14,28 @@ import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class MonitoringEngine {
 
     public RuleEvaluation evaluate(MonitoringRule rule,
-                                   Map<FlowKey, Integer> countsToday,
+                                   java.util.Map<FlowKey, Integer> countsToday,
                                    List<DailyFlowCount> dailyFlowCounts) {
         LocalDateTime now = LocalDateTime.now();
         int countToday = getCountToday(rule, countsToday);
 
         if (!isRuleApplicableToday(rule, now.toLocalDate())) {
-            return new RuleEvaluation(rule, AlertStatus.OK, countToday, rule.getDeadline(), "Inte schemalagd idag");
+            return new RuleEvaluation(
+                    rule,
+                    AlertStatus.OK,
+                    countToday,
+                    rule.getDeadline(),
+                    "Regeln gäller inte idag",
+                    buildOccurrenceKey(rule, now.toLocalDate(), rule.getDeadline()),
+                    false,
+                    "",
+                    ""
+            );
         }
 
         if ("MULTI_WINDOW".equalsIgnoreCase(rule.getScheduleType()) && !rule.getWindows().isEmpty()) {
@@ -51,19 +60,37 @@ public class MonitoringEngine {
                 now
         );
 
-        String message = buildMessage(status, countToday, effectiveMinExpected, deadline.toLocalTime().toString(), rule);
-        return new RuleEvaluation(rule, status, countToday, deadline.toLocalTime().toString(), message);
+        String message = buildSingleWindowMessage(
+                status,
+                countToday,
+                effectiveMinExpected,
+                deadline
+        );
+
+        return new RuleEvaluation(
+                rule,
+                status,
+                countToday,
+                deadline.toLocalTime().toString(),
+                message,
+                buildOccurrenceKey(rule, deadline.toLocalDate(), deadline.toLocalTime().toString()),
+                false,
+                "",
+                ""
+        );
     }
 
     private RuleEvaluation evaluateMultiWindow(MonitoringRule rule, int countToday, LocalDateTime now) {
         AlertStatus highest = AlertStatus.OK;
-        String activeDeadline = null;
+        String activeDeadline = rule.getDeadline();
         String message = "OK";
 
         int accumulatedMin = 0;
+
         for (MonitoringWindow window : rule.getWindows()) {
             accumulatedMin = Math.max(accumulatedMin, window.getMinExpected());
             LocalDateTime deadline = LocalDate.now().atTime(LocalTime.parse(window.getDeadline()));
+
             AlertStatus status = evaluateAgainstThresholds(
                     countToday,
                     accumulatedMin,
@@ -75,33 +102,46 @@ public class MonitoringEngine {
             if (severity(status) > severity(highest)) {
                 highest = status;
                 activeDeadline = window.getDeadline();
-                message = buildMessage(status, countToday, accumulatedMin, window.getDeadline(), rule);
+                message = buildMultiWindowMessage(status, countToday, accumulatedMin, deadline);
             }
         }
 
-        if (activeDeadline == null && !rule.getWindows().isEmpty()) {
-            activeDeadline = rule.getWindows().get(rule.getWindows().size() - 1).getDeadline();
-        }
+        return new RuleEvaluation(
+                rule,
+                highest,
+                countToday,
+                activeDeadline,
+                message,
+                buildOccurrenceKey(rule, LocalDate.now(), activeDeadline),
+                false,
+                "",
+                ""
+        );
+    }
 
-        return new RuleEvaluation(rule, highest, countToday, activeDeadline, message);
+    private String buildOccurrenceKey(MonitoringRule rule, LocalDate date, String deadline) {
+        return rule.getId() + "|" + date.toString() + "|" + (deadline == null ? "" : deadline);
     }
 
     private int resolveEffectiveMinExpected(MonitoringRule rule, List<DailyFlowCount> dailyFlowCounts) {
-        int base = rule.getMinExpected();
+        int configuredMin = rule.getMinExpected();
+
         if (!rule.isUseHistoricalBaseline()) {
-            return base;
+            return configuredMin;
         }
 
-        int avg = calculateHistoricalAverage(rule, dailyFlowCounts, rule.getHistoricalDays());
-        if (avg <= 0) {
-            return base;
+        int historicalAverage = calculateHistoricalAverage(rule, dailyFlowCounts, rule.getHistoricalDays());
+        if (historicalAverage <= 0) {
+            return configuredMin;
         }
 
-        int historicalMin = (int) Math.ceil(avg * (rule.getMinPercentOfAverage() / 100.0d));
-        return Math.max(base, historicalMin);
+        int historicalMin = (int) Math.ceil(historicalAverage * (rule.getMinPercentOfAverage() / 100.0d));
+        return Math.max(configuredMin, historicalMin);
     }
 
-    private int calculateHistoricalAverage(MonitoringRule rule, List<DailyFlowCount> dailyFlowCounts, int historicalDays) {
+    private int calculateHistoricalAverage(MonitoringRule rule,
+                                           List<DailyFlowCount> dailyFlowCounts,
+                                           int historicalDays) {
         if (historicalDays <= 0) {
             return 0;
         }
@@ -112,6 +152,7 @@ public class MonitoringEngine {
 
         for (int i = 1; i <= historicalDays; i++) {
             LocalDate day = today.minusDays(i);
+
             if (!isRuleApplicableToday(rule, day)) {
                 continue;
             }
@@ -134,6 +175,7 @@ public class MonitoringEngine {
         if (includedDays == 0) {
             return 0;
         }
+
         return total / includedDays;
     }
 
@@ -144,7 +186,9 @@ public class MonitoringEngine {
     }
 
     private boolean safeEquals(String a, String b) {
-        if (a == null) return b == null;
+        if (a == null) {
+            return b == null;
+        }
         return a.equals(b);
     }
 
@@ -153,33 +197,35 @@ public class MonitoringEngine {
             return false;
         }
 
-        if (!matchesSpecificDates(rule.getSpecificDates(), date)) {
-            return false;
+        boolean hasSpecificDates = !csvSet(rule.getSpecificDates()).isEmpty();
+        boolean hasWeekdays = !csvSet(rule.getWeekdays()).isEmpty();
+        boolean hasMonthDays = !csvSet(rule.getMonthDays()).isEmpty();
+
+        boolean hasAnyScheduleRestriction = hasSpecificDates || hasWeekdays || hasMonthDays;
+
+        if (!hasAnyScheduleRestriction) {
+            return true;
         }
 
-        if (!matchesWeekdays(rule.getWeekdays(), date.getDayOfWeek())) {
-            return false;
-        }
+        boolean specificDateMatch = hasSpecificDates && matchesSpecificDates(rule.getSpecificDates(), date);
+        boolean weekdayMatch = hasWeekdays && matchesWeekdays(rule.getWeekdays(), date.getDayOfWeek());
+        boolean monthDayMatch = hasMonthDays && matchesMonthDays(rule.getMonthDays(), date.getDayOfMonth());
 
-        if (!matchesMonthDays(rule.getMonthDays(), date.getDayOfMonth())) {
-            return false;
-        }
-
-        return true;
+        return specificDateMatch || weekdayMatch || monthDayMatch;
     }
 
     private boolean matchesSpecificDates(String csv, LocalDate date) {
         Set<String> values = csvSet(csv);
         if (values.isEmpty()) {
-            return true;
+            return false;
         }
-        return values.contains(date.toString());
+        return values.contains(date.toString().toUpperCase());
     }
 
     private boolean matchesWeekdays(String csv, DayOfWeek dayOfWeek) {
         Set<String> values = csvSet(csv);
         if (values.isEmpty()) {
-            return true;
+            return false;
         }
 
         String full = dayOfWeek.name();
@@ -190,21 +236,29 @@ public class MonitoringEngine {
         }
 
         switch (dayOfWeek) {
-            case MONDAY: return values.contains("MAN");
-            case TUESDAY: return values.contains("TIS");
-            case WEDNESDAY: return values.contains("ONS");
-            case THURSDAY: return values.contains("TOR");
-            case FRIDAY: return values.contains("FRE");
-            case SATURDAY: return values.contains("LOR");
-            case SUNDAY: return values.contains("SON");
-            default: return false;
+            case MONDAY:
+                return values.contains("MON") || values.contains("MAN");
+            case TUESDAY:
+                return values.contains("TUE") || values.contains("TIS");
+            case WEDNESDAY:
+                return values.contains("WED") || values.contains("ONS");
+            case THURSDAY:
+                return values.contains("THU") || values.contains("TOR");
+            case FRIDAY:
+                return values.contains("FRI") || values.contains("FRE");
+            case SATURDAY:
+                return values.contains("SAT") || values.contains("LOR");
+            case SUNDAY:
+                return values.contains("SUN") || values.contains("SON");
+            default:
+                return false;
         }
     }
 
     private boolean matchesMonthDays(String csv, int dayOfMonth) {
         Set<String> values = csvSet(csv);
         if (values.isEmpty()) {
-            return true;
+            return false;
         }
         return values.contains(String.valueOf(dayOfMonth));
     }
@@ -214,6 +268,7 @@ public class MonitoringEngine {
         if (csv == null || csv.trim().isEmpty()) {
             return result;
         }
+
         String[] parts = csv.split(",");
         for (String part : parts) {
             String trimmed = part == null ? "" : part.trim().toUpperCase();
@@ -221,6 +276,7 @@ public class MonitoringEngine {
                 result.add(trimmed);
             }
         }
+
         return result;
     }
 
@@ -235,43 +291,74 @@ public class MonitoringEngine {
 
         if (!now.isAfter(deadline)) {
             long minutesLeft = ChronoUnit.MINUTES.between(now, deadline);
+
             if (minutesLeft <= warningMinutesBeforeDeadline) {
                 return AlertStatus.WARNING;
             }
+
             return AlertStatus.INFO;
         }
 
         return AlertStatus.ERROR;
     }
 
-    private int getCountToday(MonitoringRule rule, Map<FlowKey, Integer> countsToday) {
+    private String buildSingleWindowMessage(AlertStatus status,
+                                            int actualCount,
+                                            int effectiveMinExpected,
+                                            LocalDateTime deadline) {
+        String deadlineText = deadline.toLocalTime().toString();
+
+        if (status == AlertStatus.OK) {
+            return "OK: " + actualCount + " av minst " + effectiveMinExpected + " mottagna före " + deadlineText;
+        }
+
+        if (status == AlertStatus.INFO) {
+            return "Pågår: " + actualCount + " av minst " + effectiveMinExpected + " mottagna, deadline " + deadlineText;
+        }
+
+        if (status == AlertStatus.WARNING) {
+            return "Varning: " + actualCount + " av minst " + effectiveMinExpected + " mottagna, nära deadline " + deadlineText;
+        }
+
+        return "Fel: " + actualCount + " av minst " + effectiveMinExpected + " mottagna efter deadline " + deadlineText;
+    }
+
+    private String buildMultiWindowMessage(AlertStatus status,
+                                           int actualCount,
+                                           int minExpected,
+                                           LocalDateTime deadline) {
+        String deadlineText = deadline.toLocalTime().toString();
+
+        if (status == AlertStatus.OK) {
+            return "OK: " + actualCount + " av minst " + minExpected + " mottagna före " + deadlineText;
+        }
+
+        if (status == AlertStatus.INFO) {
+            return "Pågår: " + actualCount + " av minst " + minExpected + " mottagna, deadline " + deadlineText;
+        }
+
+        if (status == AlertStatus.WARNING) {
+            return "Varning: " + actualCount + " av minst " + minExpected + " mottagna, nära deadline " + deadlineText;
+        }
+
+        return "Fel: " + actualCount + " av minst " + minExpected + " mottagna efter deadline " + deadlineText;
+    }
+
+    private int getCountToday(MonitoringRule rule, java.util.Map<FlowKey, Integer> countsToday) {
         Integer count = countsToday.get(rule.toKey());
         return count == null ? 0 : count.intValue();
     }
 
     private int severity(AlertStatus status) {
         switch (status) {
-            case ERROR: return 4;
-            case WARNING: return 3;
-            case INFO: return 2;
-            default: return 1;
+            case ERROR:
+                return 4;
+            case WARNING:
+                return 3;
+            case INFO:
+                return 2;
+            default:
+                return 1;
         }
-    }
-
-    private String buildMessage(AlertStatus status, int actual, int expected, String deadline, MonitoringRule rule) {
-        String baseline = rule.isUseHistoricalBaseline()
-                ? " (inkl historik " + rule.getHistoricalDays() + "d/" + rule.getMinPercentOfAverage() + "%)"
-                : "";
-
-        if (status == AlertStatus.OK) {
-            return "Tillräckligt antal inkommet" + baseline;
-        }
-        if (status == AlertStatus.INFO) {
-            return "Leverans pågår. " + actual + " av minst " + expected + " före " + deadline + baseline;
-        }
-        if (status == AlertStatus.WARNING) {
-            return "Risk för underskott. " + actual + " av minst " + expected + " före " + deadline + baseline;
-        }
-        return "Deadline passerad. " + actual + " av minst " + expected + " före " + deadline + baseline;
     }
 }

@@ -25,6 +25,7 @@ public class FileAcknowledgementRepository implements AcknowledgementRepository 
             result.add(new Acknowledgement(
                     stringValue(row.get("id")),
                     stringValue(row.get("ruleId")),
+                    stringValue(row.get("occurrenceKey")),
                     stringValue(row.get("status")),
                     stringValue(row.get("comment")),
                     stringValue(row.get("acknowledgedBy")),
@@ -43,7 +44,22 @@ public class FileAcknowledgementRepository implements AcknowledgementRepository 
 
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> castList(Object value) {
-        return (List<Map<String, Object>>) value;
+        if (value == null) {
+            return new ArrayList<Map<String, Object>>();
+        }
+
+        if (value instanceof List) {
+            return (List<Map<String, Object>>) value;
+        }
+
+        if (value instanceof String) {
+            Object reparsed = JsonUtils.parseJson((String) value);
+            if (reparsed instanceof List) {
+                return (List<Map<String, Object>>) reparsed;
+            }
+        }
+
+        throw new IllegalStateException("Förväntade JSON-lista men fick: " + value.getClass().getName());
     }
 
     private void writeAll(List<Acknowledgement> rows) {
@@ -55,6 +71,7 @@ public class FileAcknowledgementRepository implements AcknowledgementRepository 
             sb.append("  {");
             sb.append("\"id\": \"").append(escape(row.getId())).append("\", ");
             sb.append("\"ruleId\": \"").append(escape(row.getRuleId())).append("\", ");
+            sb.append("\"occurrenceKey\": \"").append(escape(row.getOccurrenceKey())).append("\", ");
             sb.append("\"status\": \"").append(escape(row.getStatus())).append("\", ");
             sb.append("\"comment\": \"").append(escape(row.getComment())).append("\", ");
             sb.append("\"acknowledgedBy\": \"").append(escape(row.getAcknowledgedBy())).append("\", ");
