@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function () {
     let selectedRuleMode = 'daily';
     let selectedSpecificDates = [];
     let currentSort = { key: 'status', direction: 'desc' };
+    let acknowledgeInFlight = false;
+    let formDirty = false;
+    let localAckOverrides = {};
 
     function qs(id) {
         return document.getElementById(id);
@@ -111,6 +114,53 @@ document.addEventListener('DOMContentLoaded', function () {
         return 'status-' + String(status || '').toLowerCase();
     }
 
+    function updateAcknowledgeButtonState() {
+        const btn = qs('editorAckBtn');
+        const row = selectedRuleId ? findRowById(selectedRuleId) : null;
+        if (!btn) return;
+
+        const canAcknowledge = !!(
+            row &&
+            (row.status === 'WARNING' || row.status === 'ERROR') &&
+            !row.acknowledged &&
+            !acknowledgeInFlight
+        );
+
+        btn.classList.toggle('hidden', !canAcknowledge);
+        btn.disabled = !canAcknowledge;
+        btn.textContent = acknowledgeInFlight ? 'Kvitterar...' : 'Kvittera';
+    }
+
+    function applyLocalAcknowledgement(ruleId, status, acknowledgedBy, acknowledgedAt) {
+        currentRows = currentRows.map(function (row) {
+            if (!row || row.id !== ruleId) return row;
+            if (String(row.status || '').toUpperCase() !== String(status || '').toUpperCase()) return row;
+            if (!(row.status === 'WARNING' || row.status === 'ERROR')) return row;
+
+            const updated = Object.assign({}, row, {
+                acknowledged: true,
+                acknowledgedBy: acknowledgedBy || '',
+                acknowledgedAt: acknowledgedAt || new Date().toISOString()
+            });
+
+            localAckOverrides[ackKeyForRow(updated)] = {
+                acknowledged: true,
+                acknowledgedBy: updated.acknowledgedBy,
+                acknowledgedAt: updated.acknowledgedAt
+            };
+
+            return updated;
+        });
+
+        renderDashboardRows(currentRows);
+
+        if (selectedRuleId === ruleId) {
+            const row = findRowById(ruleId);
+            fillStatusBar(row);
+            updateAcknowledgeButtonState();
+        }
+    }
+
     function statusWeight(status) {
         const map = {
             ERROR: 4,
@@ -155,6 +205,34 @@ document.addEventListener('DOMContentLoaded', function () {
             .filter(function (row) { return row.ruleId === ruleId; })
             .slice()
             .reverse();
+    }
+
+    function ackKeyForRow(row) {
+        if (!row) return '';
+        return [
+            row.id || '',
+            row.occurrenceKey || '',
+            String(row.status || '').toUpperCase()
+        ].join('|');
+    }
+
+    function mergeLocalAcknowledgements(rows) {
+        return (rows || []).map(function (row) {
+            const key = ackKeyForRow(row);
+            const localAck = localAckOverrides[key];
+            if (!localAck) return row;
+
+            if (row.acknowledged) {
+                delete localAckOverrides[key];
+                return row;
+            }
+
+            return Object.assign({}, row, {
+                acknowledged: true,
+                acknowledgedBy: localAck.acknowledgedBy || '',
+                acknowledgedAt: localAck.acknowledgedAt || ''
+            });
+        });
     }
 
     async function fetchJson(url, options) {
@@ -374,6 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (qs('editorDeleteBtn')) qs('editorDeleteBtn').classList.add('hidden');
             if (qs('editorSaveBtn')) qs('editorSaveBtn').classList.remove('hidden');
             if (qs('editorCancelBtn')) qs('editorCancelBtn').classList.remove('hidden');
+            updateAcknowledgeButtonState();
             return;
         }
 
@@ -384,13 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (qs('editorSaveBtn')) qs('editorSaveBtn').classList.add('hidden');
             if (qs('editorCancelBtn')) qs('editorCancelBtn').classList.add('hidden');
 
-            const row = selectedRuleId ? findRowById(selectedRuleId) : null;
-            if (qs('editorAckBtn')) {
-                const canAcknowledge = row
-                    && (row.status === 'WARNING' || row.status === 'ERROR')
-                    && !row.acknowledged;
-                qs('editorAckBtn').classList.toggle('hidden', !canAcknowledge);
-            }
+            updateAcknowledgeButtonState();
             return;
         }
 
@@ -400,6 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (qs('editorDeleteBtn')) qs('editorDeleteBtn').classList.add('hidden');
         if (qs('editorSaveBtn')) qs('editorSaveBtn').classList.remove('hidden');
         if (qs('editorCancelBtn')) qs('editorCancelBtn').classList.remove('hidden');
+        updateAcknowledgeButtonState();
     }
 
     function fillStatusBar(row) {
@@ -487,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!rule) return;
 
         selectedRuleId = ruleId;
+        formDirty = false;
 
         if (qs('ruleId')) qs('ruleId').value = rule.id || '';
         if (qs('sender')) qs('sender').value = rule.sender || '';
@@ -523,6 +598,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function resetCreateForm() {
         selectedRuleId = null;
+        formDirty = false;
 
         if (qs('ruleId')) qs('ruleId').value = '';
         if (qs('sender')) qs('sender').value = '';
@@ -556,6 +632,9 @@ document.addEventListener('DOMContentLoaded', function () {
         openEditorPanel();
         populateFormFromRule(ruleId);
         setEditorMode('view');
+        const row = findRowById(ruleId);
+        fillStatusBar(row);
+        updateAcknowledgeButtonState();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -688,14 +767,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         showBackendBanner(data.backendOk, data.backendMessage);
 
-        currentRows = data.rows || [];
+        currentRows = mergeLocalAcknowledgements(data.rows || []);
         renderDashboardRows(currentRows);
+        updateAcknowledgeButtonState();
 
-        if (selectedRuleId && editorMode !== 'new') {
+        if (selectedRuleId && editorMode === 'view') {
             const exists = findRuleById(selectedRuleId) && findRowById(selectedRuleId);
             if (exists) {
                 populateFormFromRule(selectedRuleId);
-                setEditorMode(editorMode === 'edit' ? 'edit' : 'view');
+                setEditorMode('view');
             }
         }
     }
@@ -743,6 +823,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         await refreshAll();
+        formDirty = false;
 
         if (method === 'PUT' && selectedRuleId) {
             openRule(selectedRuleId);
@@ -761,23 +842,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function acknowledge(ruleId, status) {
-        const comment = window.prompt('Kommentar:', '') || '';
-        const acknowledgedBy = window.prompt('Signatur:', 'user') || 'user';
+        const row = findRowById(ruleId);
+        if (!ruleId || !row) return;
+        if (!(row.status === 'WARNING' || row.status === 'ERROR')) return;
+        if (row.acknowledged || acknowledgeInFlight) return;
 
-        const body = new URLSearchParams();
-        body.set('ruleId', ruleId);
-        body.set('status', status);
-        body.set('comment', comment);
-        body.set('acknowledgedBy', acknowledgedBy);
+        const acknowledgedBy = window.prompt('Vem kvitterar?', 'user');
+        if (acknowledgedBy == null) return;
 
-        await fetchText(API.acknowledge, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-            body: body.toString()
-        });
+        const comment = window.prompt('Kommentar (valfritt):', '') || '';
 
-        await refreshAll();
-        if (selectedRuleId) openRule(selectedRuleId);
+        acknowledgeInFlight = true;
+        updateAcknowledgeButtonState();
+
+        try {
+            const body = new URLSearchParams();
+            body.set('ruleId', ruleId);
+            body.set('status', status);
+            body.set('comment', comment);
+            body.set('acknowledgedBy', acknowledgedBy);
+
+            await fetchText(API.acknowledge, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+                body: body.toString()
+            });
+
+            const acknowledgedAt = new Date().toISOString();
+
+            // Direkt i GUI, utan att vänta på nästa refresh
+            applyLocalAcknowledgement(ruleId, status, acknowledgedBy, acknowledgedAt);
+            acknowledgeInFlight = false;
+            updateAcknowledgeButtonState();
+
+            // Ladda historik direkt, men behåll lokal kvittering synlig även om dashboard-snapshot släpar
+            await loadHistory();
+
+            if (selectedRuleId === ruleId) {
+                const refreshedRow = findRowById(ruleId);
+                fillStatusBar(refreshedRow);
+                updateAcknowledgeButtonState();
+            } else {
+                renderDashboardRows(currentRows);
+            }
+
+            // Försök synka dashboard i bakgrunden utan att tappa lokal kvittering
+            setTimeout(function () {
+                loadDashboard().catch(function () {});
+            }, 250);
+        } catch (error) {
+            acknowledgeInFlight = false;
+            updateAcknowledgeButtonState();
+            window.alert('Kvittering misslyckades: ' + (error && error.message ? error.message : error));
+        }
     }
 
     function setupCreateModePicker() {
@@ -850,7 +967,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         on('editorAckBtn', 'click', async function () {
             const row = findRowById(selectedRuleId);
-            if (!selectedRuleId || !row || row.acknowledged) return;
+            if (!selectedRuleId || !row || row.acknowledged || acknowledgeInFlight) return;
             await acknowledge(selectedRuleId, row.status);
         });
     }
@@ -875,6 +992,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    on('ruleForm', 'input', function () {
+        markFormDirty();
+    });
+
+    on('ruleForm', 'change', function () {
+        markFormDirty();
+    });
 
     on('ruleForm', 'submit', function (event) {
         event.preventDefault();
