@@ -68,9 +68,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function friendlyHistoryEvent(eventType) {
         const map = {
-            STATUS_DETECTED: 'Status upptäckt',
-            STATUS_CHANGED: 'Status ändrad',
-            OCCURRENCE_STARTED: 'Ny instans',
+            STATUS_DETECTED: 'Första läge',
+            STATUS_CHANGED: 'Läget ändrades',
+            OCCURRENCE_STARTED: 'Ny bevakning',
             ACKNOWLEDGED: 'Kvitterad'
         };
         return map[eventType] || eventType || '';
@@ -86,6 +86,52 @@ document.addEventListener('DOMContentLoaded', function () {
             return parts[1];
         }
         return value;
+    }
+
+    function friendlyHistoryActor(row) {
+        const by = String((row && row.createdBy) || '').trim();
+        if (!by) return 'Okänd';
+        return by.toLowerCase() === 'system' ? 'Systemet' : by;
+    }
+
+    function extractStatusChange(row) {
+        const msg = String((row && row.message) || '');
+        const m = msg.match(/Status ändrad:?\s*([A-Z]+)\s*(?:->|till)\s*([A-Z]+)/i);
+        if (!m) return '';
+        return 'Från ' + swedishStatus(m[1].toUpperCase()) + ' till ' + swedishStatus(m[2].toUpperCase());
+    }
+
+    function friendlyHistoryMessage(row) {
+        if (!row) return '-';
+
+        const eventType = row.eventType || '';
+        const status = swedishStatus(row.status || '');
+        const occ = friendlyOccurrenceKey(row.occurrenceKey || '');
+        const actor = friendlyHistoryActor(row);
+
+        if (eventType === 'OCCURRENCE_STARTED') {
+            if (occ) return 'Bevakningen startade för ' + occ + (status ? '. Aktuellt läge: ' + status : '');
+            return status ? 'Bevakningen startade. Aktuellt läge: ' + status : 'Bevakningen startade';
+        }
+
+        if (eventType === 'STATUS_DETECTED') {
+            return status ? 'Första registrerade läge var ' + status : 'Första registrerade läge';
+        }
+
+        if (eventType === 'STATUS_CHANGED') {
+            const change = extractStatusChange(row);
+            if (change) return change;
+            return status ? 'Nytt läge: ' + status : 'Läget ändrades';
+        }
+
+        if (eventType === 'ACKNOWLEDGED') {
+            const comment = String(row.message || '').trim();
+            return comment
+                ? 'Kvitterad av ' + actor + '. Kommentar: ' + comment
+                : 'Kvitterad av ' + actor;
+        }
+
+        return row.message || '-';
     }
 
     function formatAckTimestamp(value) {
@@ -546,10 +592,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
                 <div class="timeline-sub">
                     ${isAckEvent ? '' : `<span class="timeline-status-badge ${statusClass(row.status || '')}">${escapeHtml(swedishStatus(row.status || ''))}</span>`}
-                    <span class="timeline-meta">${escapeHtml(row.createdBy || 'okänd')}</span>
+                    <span class="timeline-meta">${escapeHtml(friendlyHistoryActor(row))}</span>
                     ${row.occurrenceKey ? `<span class="timeline-occurrence">${escapeHtml(friendlyOccurrenceKey(row.occurrenceKey || ''))}</span>` : ''}
                 </div>
-                <div class="timeline-message">${escapeHtml(row.message || '-')}</div>
+                <div class="timeline-message">${escapeHtml(friendlyHistoryMessage(row))}</div>
             `;
             list.appendChild(item);
         });
