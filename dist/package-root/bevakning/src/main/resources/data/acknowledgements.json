@@ -1,0 +1,9 @@
+[
+  {"id": "ack-ead892bc-062a-47e8-966a-567dae75383e", "ruleId": "rule-003", "status": "ERROR", "comment": "ll", "acknowledgedBy": "ll", "acknowledgedAt": "2026-03-26T13:15:36.784283550"},
+  {"id": "ack-e3564e3a-1d44-442e-9788-1b98581ef039", "ruleId": "rule-003", "status": "ERROR", "comment": "åå", "acknowledgedBy": "uuiuiu", "acknowledgedAt": "2026-03-30T10:01:25.487126661"},
+  {"id": "ack-ab484e6e-6c06-4aea-8aec-358a6fb1b3b5", "ruleId": "rule-002", "status": "ERROR", "comment": "estar att kvittera", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:05:47.675137908"},
+  {"id": "ack-43c2a206-e3b9-4682-9fd0-29cf6063a438", "ruleId": "rule-003", "status": "ERROR", "comment": "ere", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:51:45.315911846"},
+  {"id": "ack-9beed0f8-7e60-459e-b197-bb113cf37b04", "ruleId": "rule-003", "status": "ERROR", "comment": "testar att kvittera", "acknowledgedBy": "kristian", "acknowledgedAt": "2026-03-30T10:58:20.854847864"},
+  {"id": "ack-bc2b56fe-d27e-4096-8f91-5f0c11398960", "ruleId": "rule-002", "status": "ERROR", "comment": "", "acknowledgedBy": "user", "acknowledgedAt": "2026-03-30T11:04:20.112514554"},
+  {"id": "ack-2aa01880-c324-46a5-bfb3-25720ab56392", "ruleId": "rule-002", "status": "ERROR", "comment": "ffdg", "acknowledgedBy": "fdg", "acknowledgedAt": "2026-03-30T11:04:26.076060458"}
+]
