@@ -1337,3 +1337,16 @@ tbody tr:hover {
     font-size: 11px;
     color: var(--muted);
 }
+
+/* Historik – extra styling */
+.panel-header{cursor:pointer}
+details.panel>summary{list-style:none}
+details.panel>summary::-webkit-details-marker{display:none}
+details.panel[open]{padding-bottom:18px}
+
+
+/* Historik – extra styling */
+.panel-header{cursor:pointer}
+details#historyPanel>summary{list-style:none}
+details#historyPanel>summary::-webkit-details-marker{display:none}
+details#historyPanel[open]{padding-bottom:18px}
