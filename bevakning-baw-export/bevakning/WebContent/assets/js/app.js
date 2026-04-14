@@ -1,12 +1,12 @@
 document.addEventListener('DOMContentLoaded', function () {
     const API = {
-        dashboard: '/api/dashboard',
-        rules: '/api/rules',
-        acknowledge: '/api/acknowledge',
-        history: '/api/history',
-        adminConfig: '/api/admin/config',
-        exportRules: '/api/admin/rules/export',
-        importRules: '/api/admin/rules/import'
+        dashboard: 'api/dashboard',
+        rules: 'api/rules',
+        acknowledge: 'api/acknowledge',
+        history: 'api/history',
+        adminConfig: 'api/admin/config',
+        exportRules: 'api/admin/rules/export',
+        importRules: 'api/admin/rules/import'
     };
 
     const MODE_HELP = {
@@ -860,7 +860,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!form) return;
 
         const body = new URLSearchParams(new FormData(form));
-        const method = 'POST';
+        const method = editorMode === 'edit' && selectedRuleId ? 'PUT' : 'POST';
 
         await fetchText(API.rules, {
             method: method,

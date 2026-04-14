@@ -1,0 +1,7 @@
+1. Packa upp zip-filen.
+2. I Eclipse/BAW: File -> Import -> Existing Projects into Workspace.
+3. Välj rotmappen som innehåller projekten bevakning och bevakningEAR.
+4. Importera båda projekten.
+5. Lägg bevakningEAR på servern.
+6. Om Eclipse frågar om facets/runtime: använd Java 8 och Web 3.0 / EAR 5.0.
+7. Om gamla workspace-rester finns: importera i ett nytt workspace.

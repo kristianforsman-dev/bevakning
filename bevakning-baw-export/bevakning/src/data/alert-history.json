@@ -1,0 +1,9 @@
+[
+  {"id": "hist-e22847af-582c-4d29-83e9-bcc0ed770c0d", "ruleId": "rule-003", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "ll", "createdAt": "2026-03-26T13:15:36.784283550", "createdBy": "ll"},
+  {"id": "hist-8427a561-6b7e-4c32-98e7-9cf3b0a05042", "ruleId": "rule-003", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "åå", "createdAt": "2026-03-30T10:01:25.487126661", "createdBy": "uuiuiu"},
+  {"id": "hist-d0ae8b89-b40f-4c51-a28f-78b5e964e4d8", "ruleId": "rule-002", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "estar att kvittera", "createdAt": "2026-03-30T10:05:47.675137908", "createdBy": "kristian"},
+  {"id": "hist-9b4ed5d4-ee9e-499c-bd33-980a8b75e484", "ruleId": "rule-003", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "ere", "createdAt": "2026-03-30T10:51:45.315911846", "createdBy": "kristian"},
+  {"id": "hist-1ec8b15e-8c0d-4205-aa42-d30d368d54f5", "ruleId": "rule-003", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "testar att kvittera", "createdAt": "2026-03-30T10:58:20.854847864", "createdBy": "kristian"},
+  {"id": "hist-c001b375-4672-4b23-9bdb-482fdb42dec7", "ruleId": "rule-002", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "", "createdAt": "2026-03-30T11:04:20.112514554", "createdBy": "user"},
+  {"id": "hist-c0451615-0b46-44f0-a580-3798df75bdde", "ruleId": "rule-002", "eventType": "ACKNOWLEDGED", "status": "ERROR", "message": "ffdg", "createdAt": "2026-03-30T11:04:26.076060458", "createdBy": "fdg"}
+]

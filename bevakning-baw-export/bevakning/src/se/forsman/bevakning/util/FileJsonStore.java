@@ -4,8 +4,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.OutputStreamWriter;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -43,8 +42,7 @@ public final class FileJsonStore {
         if (parent != null && !parent.exists()) {
             parent.mkdirs();
         }
-        try (BufferedWriter writer = new BufferedWriter(
-                new OutputStreamWriter(new FileOutputStream(file, false), StandardCharsets.UTF_8))) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, false))) {
             writer.write(content);
         } catch (IOException e) {
             throw new IllegalStateException("Kunde inte skriva fil: " + path, e);
