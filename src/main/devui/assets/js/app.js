@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
             card.classList.add('error', 'stale-error');
             return;
         }
-        if (minutes >= 10) {
+        if (minutes >= uiConfig.flowStaleWarningMinutes) {
             card.classList.add('warn', 'stale-warn');
             return;
         }
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentSort = { key: 'status', direction: 'desc' };
     let acknowledgeInFlight = false;
     let formDirty = false;
-    let localAckOverrides = {};
+    let localAckOverrides = {}; let uiConfig = { dashboardRefreshSeconds: 5, historyRefreshSeconds: 10, flowStaleWarningMinutes: 10, flowStaleErrorMinutes: 60 }; let dashboardRefreshTimer = null; let historyRefreshTimer = null;
 
     function qs(id) {
         return document.getElementById(id);
@@ -117,11 +117,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function applyFlowCardState(card, minutes) {
         if (!card) return;
         card.classList.remove('ok', 'warn', 'error', 'stale-warn', 'stale-error');
-        if (minutes == null || minutes > 60) {
+        if (minutes == null || minutes > uiConfig.flowStaleErrorMinutes) {
             card.classList.add('error');
             return;
         }
-        if (minutes >= 10) {
+        if (minutes >= uiConfig.flowStaleWarningMinutes) {
             card.classList.add('warn');
             return;
         }

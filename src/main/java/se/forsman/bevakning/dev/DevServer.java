@@ -27,7 +27,7 @@ public class DevServer {
                 new CachedDashboardService(services.getDashboardService());
 
         final RefreshScheduler scheduler =
-                new RefreshScheduler(cachedDashboardService, config.getInt("app.refresh.seconds", 30));
+                new RefreshScheduler(cachedDashboardService, config.getInt("db2.query.poll.seconds", config.getInt("app.refresh.seconds", 30)));
 
         try {
             scheduler.start();
