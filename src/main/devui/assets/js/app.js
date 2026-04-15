@@ -1,12 +1,14 @@
 document.addEventListener('DOMContentLoaded', function () {
+    const contextPath = window.location.pathname.startsWith('/bevakning/') ? '/bevakning' : '';
+
     const API = {
-        dashboard: '/api/dashboard',
-        rules: '/api/rules',
-        acknowledge: '/api/acknowledge',
-        history: '/api/history',
-        adminConfig: '/api/admin/config',
-        exportRules: '/api/admin/rules/export',
-        importRules: '/api/admin/rules/import'
+        dashboard: contextPath + '/api/dashboard',
+        rules: contextPath + '/api/rules',
+        acknowledge: contextPath + '/api/acknowledge',
+        history: contextPath + '/api/history',
+        adminConfig: contextPath + '/api/admin/config',
+        exportRules: contextPath + '/api/admin/rules/export',
+        importRules: contextPath + '/api/admin/rules/import'
     };
 
     const MODE_HELP = {
