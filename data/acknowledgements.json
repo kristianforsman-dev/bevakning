@@ -13,5 +13,6 @@
   {"id": "ack-c1ed3766-df63-4447-a082-58cce3644459", "ruleId": "rule-001", "occurrenceKey": "rule-001|2026-04-01|06:00", "status": "ERROR", "comment": "fghgh", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-01T06:00:48.896580411"},
   {"id": "ack-fe6502cf-7c56-4114-a675-726ca4282f55", "ruleId": "rule-002", "occurrenceKey": "rule-002|2026-04-01|02:15", "status": "ERROR", "comment": "hjhgj", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-01T06:16:27.759731496"},
   {"id": "ack-589d456b-3d0b-4580-8da5-5f83f8aef840", "ruleId": "rule-003", "occurrenceKey": "rule-003|2026-04-01|06:30", "status": "WARNING", "comment": "dd", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-01T06:22:53.678223863"},
-  {"id": "ack-a227a3ae-1ff9-4e91-b312-8d57b3a67be4", "ruleId": "rule-003", "occurrenceKey": "rule-003|2026-04-01|06:30", "status": "ERROR", "comment": "yt", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-01T07:07:03.216237566"}
+  {"id": "ack-a227a3ae-1ff9-4e91-b312-8d57b3a67be4", "ruleId": "rule-003", "occurrenceKey": "rule-003|2026-04-01|06:30", "status": "ERROR", "comment": "yt", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-01T07:07:03.216237566"},
+  {"id": "ack-7caeb909-2cbd-4029-aa9d-c37fd621a3d7", "ruleId": "rule-004", "occurrenceKey": "rule-004|2026-04-15|09:00", "status": "ERROR", "comment": "pp", "acknowledgedBy": "user", "acknowledgedAt": "2026-04-15T11:57:03.276497634"}
 ]

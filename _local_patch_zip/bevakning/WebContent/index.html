@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flödesbevakning</title>
+    <link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div class="shell">
+    <header class="hero">
+        <div class="hero-left">
+            <div class="eyebrow">Integration Monitoring</div>
+            <h1>Flödesbevakning</h1>
+
+        </div>
+        <div class="hero-right">
+            <div class="hero-pill">
+                <span class="hero-pill-label">Senast hämtad från DB2</span>
+                <span id="refreshedAt" class="hero-pill-value">-</span>
+            </div>
+        </div>
+    </header>
+
+    <section id="backendBanner" class="banner hidden"></section>
+
+    <section class="stats-grid">
+        <article class="stat-card total">
+            <div class="stat-label">Flöden idag</div>
+            <div id="statTotal" class="stat-value">0</div>
+        </article>
+        <article class="stat-card ok">
+            <div class="stat-label">OK</div>
+            <div id="statOk" class="stat-value">0</div>
+        </article>
+        <article class="stat-card info">
+            <div class="stat-label">Info</div>
+            <div id="statInfo" class="stat-value">0</div>
+        </article>
+        <article class="stat-card warn">
+            <div class="stat-label">Varning</div>
+            <div id="statWarning" class="stat-value">0</div>
+        </article>
+        <article class="stat-card error">
+            <div class="stat-label">Fel</div>
+            <div id="statError" class="stat-value">0</div>
+        </article>
+        <article id="statIncomingCard" class="stat-card ok">
+            <div class="stat-label">Senaste inkommande</div>
+            <div id="statIncomingAge" class="stat-value">--</div>
+            <div id="statIncomingTime" class="stat-subvalue">Ingen data</div>
+        </article>
+        <article id="statOutgoingCard" class="stat-card ok">
+            <div class="stat-label">Senaste utgående</div>
+            <div id="statOutgoingAge" class="stat-value">--</div>
+            <div id="statOutgoingTime" class="stat-subvalue">Ingen data</div>
+        </article>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Bevakningar</h2>
+            <input id="filterInput" class="search" placeholder="Sök i bevakningar">
+        </div>
+
+        <div class="table-wrap">
+            <table id="rulesTable">
+                <thead>
+                <tr>
+                    <th>Avsändare</th>
+                    <th>Mottagare</th>
+                    <th>Meddelandetyp</th>
+                    <th>Status</th>
+                    <th>Antal idag</th>
+                    <th>Deadline</th>
+                    <th>Gäller</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="panel accordion">
+        <button class="accordion-toggle" type="button" data-accordion-target="rulePanel">
+            <span>Arbetsyta</span>
+            <span class="accordion-icon">+</span>
+        </button>
+
+        <div id="rulePanel" class="accordion-body hidden">
+            <div class="editor-toolbar">
+                <div class="editor-heading">
+                    <div class="editor-heading-badges">
+                        <div id="editorModeBadge" class="editor-mode-badge">Ny</div>
+                        <div id="editorRuleBadge" class="editor-rule-badge hidden">Ingen vald regel</div>
+                    </div>
+                </div>
+
+                <div class="editor-actions">
+                    <button id="editorNewBtn" class="btn" type="button">Ny</button>
+                    <button id="editorEditBtn" class="btn hidden" type="button">Editera</button>
+                    <button id="editorAckBtn" class="btn hidden" type="button">Kvittera</button>
+                    <button id="editorDeleteBtn" class="btn danger hidden" type="button">Radera</button>
+                    <button id="editorSaveBtn" class="btn hidden" type="button">Spara</button>
+                    <button id="editorCancelBtn" class="btn hidden" type="button">Avbryt</button>
+                </div>
+            </div>
+
+            <div class="editor-statusbar">
+                <div class="editor-status-item">
+                    <div id="editorCurrentStatus">-</div>
+                </div>
+                <div class="editor-status-item">
+                    <div id="editorCurrentCount">-</div>
+                </div>
+                <div class="editor-status-item">
+                    <div id="editorAckInfo">Ej kvitterad</div>
+                </div>
+            </div>
+
+            <div id="editorHistoryPanel" class="editor-history hidden">
+                <div id="editorHistoryEmpty" class="detail-empty">Ingen historik.</div>
+                <div id="editorHistoryList" class="timeline compact"></div>
+            </div>
+
+            <form id="ruleForm" class="form-grid">
+                <input type="hidden" id="ruleId" name="id">
+                <input type="hidden" id="weekdays" name="weekdays">
+                <input type="hidden" id="monthDays" name="monthDays">
+                <input type="hidden" id="specificDates" name="specificDates">
+                <input type="hidden" id="scheduleType" name="scheduleType" value="DAILY">
+
+                <div class="span-6 form-mode-picker">
+                    <span class="picker-title">Regeltyp</span>
+                    <div class="mode-grid" id="ruleModePicker">
+                        <button type="button" class="mode-card active" data-rule-mode="daily">
+                            <strong>Daglig</strong>
+                            <small>Leverans varje dag</small>
+                        </button>
+                        <button type="button" class="mode-card" data-rule-mode="weekly">
+                            <strong>Veckodagar</strong>
+                            <small>Vissa dagar i veckan</small>
+                        </button>
+                        <button type="button" class="mode-card" data-rule-mode="monthly">
+                            <strong>Månadsdagar</strong>
+                            <small>Vissa dagar i månaden</small>
+                        </button>
+                        <button type="button" class="mode-card" data-rule-mode="dates">
+                            <strong>Specifika datum</strong>
+                            <small>Utvalda datum</small>
+                        </button>
+                        <button type="button" class="mode-card" data-rule-mode="multiwindow">
+                            <strong>Flera tidsfönster</strong>
+                            <small>Avancerad regel</small>
+                        </button>
+                    </div>
+                    <div id="ruleModeHelp" class="mode-help">Bevakningen gäller varje dag.</div>
+                </div>
+
+                <label>
+                    <span>Avsändare</span>
+                    <input id="sender" name="sender" required>
+                </label>
+
+                <label>
+                    <span>Mottagare</span>
+                    <input id="receiver" name="receiver" required>
+                </label>
+
+                <label>
+                    <span>Meddelandetyp</span>
+                    <input id="msgType" name="msgType" required>
+                </label>
+
+                <label class="span-3">
+                    <span>Beskrivning</span>
+                    <input id="description" name="description" placeholder="Till exempel daglig fakturaleverans">
+                </label>
+
+                <label>
+                    <span>Min antal</span>
+                    <input id="minExpected" name="minExpected" type="number" value="1" required>
+                </label>
+
+                <label>
+                    <span>Högsta antal</span>
+                    <input id="maxExpected" name="maxExpected" type="number" value="1">
+                </label>
+
+                <label>
+                    <span>Senast klar</span>
+                    <input id="deadline" name="deadline" type="time" value="15:00" required>
+                </label>
+
+                <label>
+                    <span>Varning (min)</span>
+                    <input id="warningMinutesBeforeDeadline" name="warningMinutesBeforeDeadline" type="number" value="60" required>
+                </label>
+
+                <label>
+                    <span>Aktiv</span>
+                    <select id="active" name="active">
+                        <option value="true" selected>Ja</option>
+                        <option value="false">Nej</option>
+                    </select>
+                </label>
+
+                <div id="weekdaySection" class="span-3 picker-group hidden">
+                    <span class="picker-title">Veckodagar</span>
+                    <div class="chip-grid" id="weekdayPicker">
+                        <button type="button" class="chip" data-weekday="MON">Mån</button>
+                        <button type="button" class="chip" data-weekday="TUE">Tis</button>
+                        <button type="button" class="chip" data-weekday="WED">Ons</button>
+                        <button type="button" class="chip" data-weekday="THU">Tor</button>
+                        <button type="button" class="chip" data-weekday="FRI">Fre</button>
+                        <button type="button" class="chip" data-weekday="SAT">Lör</button>
+                        <button type="button" class="chip" data-weekday="SUN">Sön</button>
+                    </div>
+                </div>
+
+                <div id="monthDaySection" class="span-3 picker-group hidden">
+                    <span class="picker-title">Dagar i månaden</span>
+                    <div class="chip-grid days-grid" id="monthDayPicker"></div>
+                </div>
+
+                <div id="specificDateSection" class="span-3 picker-group hidden">
+                    <span class="picker-title">Specifika datum</span>
+                    <div class="date-add-row">
+                        <input type="date" id="specificDateInput">
+                        <button type="button" class="btn" id="addSpecificDateBtn">Lägg till</button>
+                        <button type="button" class="btn" id="clearSpecificDatesBtn">Rensa</button>
+                    </div>
+                    <div id="specificDatesList" class="selected-list"></div>
+                </div>
+
+                <section class="span-6 sub-accordion">
+                    <button class="accordion-toggle inner" type="button" data-accordion-target="advancedPanel">
+                        <span>Avancerade inställningar</span>
+                        <span class="accordion-icon">+</span>
+                    </button>
+
+                    <div id="advancedPanel" class="accordion-body hidden">
+                        <div class="form-grid advanced-grid">
+                            <label>
+                                <span>Historisk baseline</span>
+                                <select id="useHistoricalBaseline" name="useHistoricalBaseline">
+                                    <option value="false" selected>Nej</option>
+                                    <option value="true">Ja</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>Historiska dagar</span>
+                                <input id="historicalDays" name="historicalDays" type="number" value="10">
+                            </label>
+
+                            <label>
+                                <span>Minsta andel av historiskt snitt (%)</span>
+                                <input id="minPercentOfAverage" name="minPercentOfAverage" type="number" value="85">
+                            </label>
+
+                            <label id="windowsSpecWrap" class="span-3 hidden">
+                                <span>Tidsfönster</span>
+                                <textarea id="windowsSpec" name="windowsSpec" rows="4" placeholder="02:15|2|5&#10;15:10|5|10"></textarea>
+                                <small class="field-help">En rad per fönster: tid|min|max</small>
+                            </label>
+                        </div>
+                    </div>
+                </section>
+            </form>
+        </div>
+    </section>
+
+
+
+    <section class="panel accordion">
+        <button class="accordion-toggle" type="button" data-accordion-target="adminPanel">
+            <span>Admin</span>
+            <span class="accordion-icon">+</span>
+        </button>
+        <div id="adminPanel" class="accordion-body hidden">
+            <div class="admin-actions">
+                <button id="loadConfigBtn" class="btn" type="button">Config</button>
+                <button id="exportRulesBtn" class="btn" type="button">Export</button>
+                <button id="importRulesBtn" class="btn" type="button">Import</button>
+            </div>
+
+            <div class="admin-grid">
+                <div>
+                    <h3 class="subheading">Aktiv konfiguration</h3>
+                    <pre id="adminConfigBox" class="codebox">Inte laddad ännu</pre>
+                </div>
+                <div>
+                    <h3 class="subheading">Regeldefinitioner</h3>
+                    <textarea id="rulesJsonBox" class="codebox inputbox" placeholder="Exporterad JSON eller import"></textarea>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

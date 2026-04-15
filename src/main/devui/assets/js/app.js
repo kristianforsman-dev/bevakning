@@ -890,6 +890,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function loadDashboard() {
         const data = await fetchJson(API.dashboard, { cache: 'no-store' });
+        uiConfig = Object.assign(uiConfig, data);
 
         if (qs('statTotal')) qs('statTotal').textContent = data.totalFlowsToday;
         if (qs('statOk')) qs('statOk').textContent = data.ok;
@@ -922,10 +923,29 @@ document.addEventListener('DOMContentLoaded', function () {
         currentHistory = await fetchJson(API.history, { cache: 'no-store' });
     }
 
+    function startRefreshTimers() {
+        if (dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
+        if (historyRefreshTimer) clearInterval(historyRefreshTimer);
+
+        dashboardRefreshTimer = setInterval(function () {
+            loadDashboard().catch(function (e) {
+                console.error(e);
+                showBackendBanner(false, e.message || 'Kunde inte ladda dashboard');
+            });
+        }, Math.max(1, uiConfig.dashboardRefreshSeconds) * 1000);
+
+        historyRefreshTimer = setInterval(function () {
+            loadHistory().catch(function (e) {
+                console.error(e);
+            });
+        }, Math.max(1, uiConfig.historyRefreshSeconds) * 1000);
+    }
+
     async function loadAdminConfig() {
         const box = qs('adminConfigBox');
         if (!box) return;
         const data = await fetchJson(API.adminConfig, { cache: 'no-store' });
+        uiConfig = Object.assign(uiConfig, data);
         box.textContent = JSON.stringify(data, null, 2);
     }
 
@@ -1188,8 +1208,8 @@ document.addEventListener('DOMContentLoaded', function () {
         resetCreateForm();
         refreshAll();
 
-        setInterval(loadDashboard, 5000);
-        setInterval(loadHistory, 10000);
+        
+        
     } catch (e) {
         console.error('Frontend crash:', e);
         showBackendBanner(false, 'Frontend-fel: ' + (e && e.message ? e.message : e));
