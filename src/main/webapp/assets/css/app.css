@@ -1370,3 +1370,29 @@ tbody tr:hover {
     border-color: rgba(220, 38, 38, 0.55);
     box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.18) inset;
 }
+
+
+/* Bevaknings­tabellen: scroll om listan blir lång */
+.rules-scroll {
+    max-height: 60vh;          /* justera vid behov */
+    overflow-y: auto;
+}
+/* bevara rubrikraden klistrad högst upp */
+.rules-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: #fff;
+}
+
+/* Auto-scroll för bevakningstabellen */
+#rulesTableWrap{max-height:70vh;overflow:auto}
+
+/* Auto-scroll för bevakningstabellen */
+#rulesTableWrap{max-height:70vh;overflow:auto;}
+
+/* Auto-scroll för bevakningstabellen */
+#rulesTableWrap.scroll{
+    max-height:70vh;   /* justera om du vill ha annan höjd */
+    overflow-y:auto;
+}
+

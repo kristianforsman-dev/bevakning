@@ -284,6 +284,8 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0;
 
         if (selectedRuleId === ruleId) {
             const row = findRowById(ruleId);
@@ -766,7 +768,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // panelen är redan öppen för samma regel → stäng den
             qs('rulePanel').classList.add('hidden');
             selectedRuleId = null;
-            renderDashboardRows(currentRows); // ta bort highlight
+            renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0; // ta bort highlight
             return;
         }
         openRule(ruleId);
@@ -819,6 +823,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         return sorted;
     }
+
+    
+function updateTableScroll() {
+    const wrap = document.getElementById('rulesTableWrap');
+    if (!wrap) return;
+    const rows = wrap.querySelectorAll('tbody tr');
+    // Lägg till class "scroll" om det finns fler än 5 rader
+    wrap.classList.toggle('scroll', rows.length > 5);
+}
+
 
     function renderDashboardRows(rows) {
         const tbody = document.querySelector('#rulesTable tbody');
@@ -895,6 +909,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     currentSort.direction = item.key === 'status' ? 'desc' : 'asc';
                 }
                 renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0;
             });
         });
     }
@@ -915,6 +931,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         currentRows = mergeLocalAcknowledgements(data.rows || []);
         renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0;
         updateAcknowledgeButtonState();
 
         if (selectedRuleId && editorMode === 'view') {
@@ -1049,6 +1067,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 updateAcknowledgeButtonState();
             } else {
                 renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0;
             }
 
             // Försök synka dashboard i bakgrunden utan att tappa lokal kvittering
@@ -1204,6 +1224,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     on('filterInput', 'input', function () {
         renderDashboardRows(currentRows);
+        updateTableScroll();
+        const wrap=document.getElementById('rulesTableWrap');if(wrap)wrap.scrollTop=0;
     });
 
     try {
