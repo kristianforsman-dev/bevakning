@@ -99,17 +99,10 @@ public class DashboardService {
             }
 
             BackendStatus backendStatus = flowRepository.getBackendStatus();
+            String incomingStartedAt = formatDateTime(flowRepository.findLatestIncomingStartedAt());
+            String outgoingStartedAt = formatDateTime(flowRepository.findLatestOutgoingStartedAt());
 
-            return new DashboardSnapshot(
-                    totalFlowsToday,
-                    ok,
-                    info,
-                    warning,
-                    error,
-                    rows,
-                    backendStatus.isOk(),
-                    backendStatus.getMessage()
-            );
+            return new DashboardSnapshot(totalFlowsToday, ok, info, warning, error, rows, backendStatus.isOk(), backendStatus.getMessage(), incomingStartedAt, outgoingStartedAt);
         } catch (Exception e) {
             return new DashboardSnapshot(
                     0,
@@ -119,7 +112,9 @@ public class DashboardService {
                     0,
                     new ArrayList<RuleEvaluation>(),
                     false,
-                    e.getMessage() == null ? "Tekniskt fel i backend" : e.getMessage()
+                    e.getMessage() == null ? "Tekniskt fel i backend" : e.getMessage(),
+                    null,
+                    null
             );
         }
     }
@@ -241,7 +236,14 @@ public class DashboardService {
         }
 
         return count;
+    }    private String formatDateTime(LocalDateTime value) {
+        if (value == null) {
+            return null;
+        }
+        return value.plusHours(2).toString();
     }
+
+
 
     private String safe(String value) {
         return value == null ? "" : value;

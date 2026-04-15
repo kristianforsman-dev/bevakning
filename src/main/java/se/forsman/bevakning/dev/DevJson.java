@@ -27,6 +27,14 @@ public final class DevJson {
         sb.append("\"error\":").append(snapshot.getError()).append(",");
         sb.append("\"backendOk\":").append(snapshot.isBackendOk()).append(",");
         sb.append("\"backendMessage\":\"").append(escape(snapshot.getBackendMessage())).append("\",");
+        sb.append("\"incomingStartedAt\":");
+        if (snapshot.getIncomingStartedAt() == null) sb.append("null");
+        else sb.append("\"").append(escape(snapshot.getIncomingStartedAt())).append("\"");
+        sb.append(",");
+        sb.append("\"outgoingStartedAt\":");
+        if (snapshot.getOutgoingStartedAt() == null) sb.append("null");
+        else sb.append("\"").append(escape(snapshot.getOutgoingStartedAt())).append("\"");
+        sb.append(",");
         sb.append("\"refreshedAt\":\"").append(escape(refreshedAt == null ? "" : refreshedAt.toString())).append("\",");
         sb.append("\"rows\":[");
 

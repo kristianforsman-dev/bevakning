@@ -20,6 +20,41 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     let currentRows = [];
+    const incomingAgeEl = document.getElementById('statIncomingAge');
+    const incomingTimeEl = document.getElementById('statIncomingTime');
+    const outgoingAgeEl = document.getElementById('statOutgoingAge');
+    const outgoingTimeEl = document.getElementById('statOutgoingTime');
+    const incomingCardEl = document.getElementById('statIncomingCard');
+    const outgoingCardEl = document.getElementById('statOutgoingCard');
+
+    function setStaleCardState(card, minutes) {
+        if (!card) return;
+        card.classList.remove('ok', 'warn', 'error', 'stale-warn', 'stale-error');
+        if (minutes == null) {
+            card.classList.add('error', 'stale-error');
+            return;
+        }
+        if (minutes > 60) {
+            card.classList.add('error', 'stale-error');
+            return;
+        }
+        if (minutes >= 10) {
+            card.classList.add('warn', 'stale-warn');
+            return;
+        }
+        card.classList.add('ok');
+    }
+
+    function setFlowSummaryPlaceholder() {
+        if (incomingAgeEl) incomingAgeEl.textContent = '--';
+        if (incomingTimeEl) incomingTimeEl.textContent = 'Ingen data';
+        if (outgoingAgeEl) outgoingAgeEl.textContent = '--';
+        if (outgoingTimeEl) outgoingTimeEl.textContent = 'Ingen data';
+        setStaleCardState(incomingCardEl, null);
+        setStaleCardState(outgoingCardEl, null);
+    }
+
+    setFlowSummaryPlaceholder();
     let currentRules = [];
     let currentHistory = [];
     let selectedRuleId = null;
@@ -56,6 +91,54 @@ document.addEventListener('DOMContentLoaded', function () {
     function formatTimestamp(value) {
         if (!value) return '-';
         return value.replace('T', ' ').slice(0, 19);
+    }
+
+    function minutesSince(value) {
+        if (!value) return null;
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return null;
+        return Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+    }
+
+    function formatMinutesAge(minutes) {
+        if (minutes == null) return '--';
+        if (minutes < 60) return minutes + ' min';
+        if (minutes < 1440) {
+            const hours = Math.floor(minutes / 60);
+            const rest = minutes % 60;
+            return rest === 0 ? hours + ' h' : hours + ' h ' + rest + ' min';
+        }
+        const days = Math.floor(minutes / 1440);
+        const remAfterDays = minutes % 1440;
+        const hours = Math.floor(remAfterDays / 60);
+        return hours === 0 ? days + ' d' : days + ' d ' + hours + ' h';
+    }
+
+    function applyFlowCardState(card, minutes) {
+        if (!card) return;
+        card.classList.remove('ok', 'warn', 'error', 'stale-warn', 'stale-error');
+        if (minutes == null || minutes > 60) {
+            card.classList.add('error');
+            return;
+        }
+        if (minutes >= 10) {
+            card.classList.add('warn');
+            return;
+        }
+        card.classList.add('ok');
+    }
+
+    function updateFlowSummary(data) {
+        const incomingMinutes = minutesSince(data && data.incomingStartedAt);
+        const outgoingMinutes = minutesSince(data && data.outgoingStartedAt);
+
+        if (incomingAgeEl) incomingAgeEl.textContent = formatMinutesAge(incomingMinutes);
+        if (incomingTimeEl) incomingTimeEl.textContent = data && data.incomingStartedAt ? formatTimestamp(data.incomingStartedAt) : 'Ingen data';
+        if (outgoingAgeEl) outgoingAgeEl.textContent = formatMinutesAge(outgoingMinutes);
+        if (outgoingTimeEl) outgoingTimeEl.textContent = data && data.outgoingStartedAt ? formatTimestamp(data.outgoingStartedAt) : 'Ingen data';
+
+        applyFlowCardState(incomingCardEl, incomingMinutes);
+        applyFlowCardState(outgoingCardEl, outgoingMinutes);
     }
 
     function swedishStatus(status) {
@@ -813,6 +896,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (qs('statInfo')) qs('statInfo').textContent = data.info;
         if (qs('statWarning')) qs('statWarning').textContent = data.warning;
         if (qs('statError')) qs('statError').textContent = data.error;
+        updateFlowSummary(data);
         if (qs('refreshedAt')) qs('refreshedAt').textContent = formatTimestamp(data.refreshedAt);
 
         showBackendBanner(data.backendOk, data.backendMessage);

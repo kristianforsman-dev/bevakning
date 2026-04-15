@@ -11,7 +11,9 @@ import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -97,7 +99,74 @@ public class Db2FlowRepository implements FlowRepository {
         return "Db2FlowRepository{jndiName=" + jndiName + ", queryMode=" + queryMode + ", schema=" + schema + ", splitQueries=true}";
     }
 
-    private List<DailyFlowCount> queryDailyCounts(LocalDate fromDate, LocalDate toDate) {
+    
+
+    @Override
+    public LocalDateTime findLatestIncomingStartedAt() {
+        return queryLatestStartedAt(false);
+    }
+
+    @Override
+    public LocalDateTime findLatestOutgoingStartedAt() {
+        return queryLatestStartedAt(true);
+    }
+
+    private LocalDateTime queryLatestStartedAt(boolean outgoing) {
+        Connection connection = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            DataSource dataSource = (DataSource) new InitialContext().lookup(jndiName);
+            connection = dataSource.getConnection();
+            String sql = MODE_INSTANCE_ATTRIBUTE_T.equalsIgnoreCase(queryMode)
+                    ? buildLatestStartedInstanceAttributeTSql(outgoing)
+                    : buildLatestStartedProcessAttributeSql(outgoing);
+            ps = connection.prepareStatement(sql);
+            ps.setString(1, senderKey);
+            ps.setString(2, "SAP-ECC");
+            ps.setString(3, "PRIO");
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                Timestamp ts = rs.getTimestamp("LAST_STARTED");
+                return ts == null ? null : ts.toLocalDateTime();
+            }
+            return null;
+        } catch (Exception e) {
+            throw new IllegalStateException("Kunde inte hämta senaste flödestid via Db2/JNDI. jndi=" + jndiName + ", mode=" + queryMode + ", outgoing=" + outgoing, e);
+        } finally {
+            closeQuietly(rs);
+            closeQuietly(ps);
+            closeQuietly(connection);
+        }
+    }
+
+    private String buildLatestStartedProcessAttributeSql(boolean outgoing) {
+        String pi = qualifiedName(processTable);
+        String pa = qualifiedName(attributeTable);
+        String senderExpr = "CAST(PA_S.VALUE AS VARCHAR(256))";
+        String filter = outgoing
+                ? senderExpr + " IN (?, ?)"
+                : "(" + senderExpr + " IS NULL OR " + senderExpr + " NOT IN (?, ?))";
+        return "SELECT MAX(PI.STARTED) AS LAST_STARTED "
+                + "FROM " + pi + " PI "
+                + "LEFT JOIN " + pa + " PA_S ON PI.PIID = PA_S.PIID AND PA_S.NAME = ? "
+                + "WHERE PI.STARTED IS NOT NULL AND " + filter + " WITH UR";
+    }
+
+    private String buildLatestStartedInstanceAttributeTSql(boolean outgoing) {
+        String pib = qualifiedName(processBTable);
+        String pia = qualifiedName(processInstanceAttributeTTable);
+        String senderExpr = "CAST(PA_S.VALUE AS VARCHAR(256))";
+        String filter = outgoing
+                ? senderExpr + " IN (?, ?)"
+                : "(" + senderExpr + " IS NULL OR " + senderExpr + " NOT IN (?, ?))";
+        return "SELECT MAX(PI.STARTED) AS LAST_STARTED "
+                + "FROM " + pib + " PI "
+                + "LEFT JOIN " + pia + " PA_S ON PI.PIID = PA_S.PIID AND PA_S.ATTR_KEY = ? "
+                + "WHERE PI.STARTED IS NOT NULL AND " + filter + " WITH UR";
+    }
+
+private List<DailyFlowCount> queryDailyCounts(LocalDate fromDate, LocalDate toDate) {
         if (toDate.isBefore(fromDate)) {
             return new ArrayList<DailyFlowCount>();
         }

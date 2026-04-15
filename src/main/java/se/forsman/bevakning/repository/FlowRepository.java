@@ -6,6 +6,7 @@ import se.forsman.bevakning.domain.FlowEvent;
 import se.forsman.bevakning.domain.FlowKey;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,41 @@ public interface FlowRepository {
         LocalDate toDate = LocalDate.now().minusDays(1);
         return filterDailyCounts(findDailyFlowCounts(lookbackDays), fromDate, toDate);
     }
+    default LocalDateTime findLatestIncomingStartedAt() {
+        return findLatestStartedAt(false);
+    }
+
+    default LocalDateTime findLatestOutgoingStartedAt() {
+        return findLatestStartedAt(true);
+    }
+
+    default LocalDateTime findLatestStartedAt(boolean outgoing) {
+        List<FlowEvent> events = findAllFlowEvents();
+        LocalDateTime latest = null;
+        for (FlowEvent event : events) {
+            if (event == null || event.getStarted() == null) {
+                continue;
+            }
+            boolean ownSender = isOwnSystemSender(event.getSender());
+            if (outgoing != ownSender) {
+                continue;
+            }
+            if (latest == null || event.getStarted().isAfter(latest)) {
+                latest = event.getStarted();
+            }
+        }
+        return latest;
+    }
+
+    default boolean isOwnSystemSender(String sender) {
+        if (sender == null) {
+            return false;
+        }
+        String s = sender.trim();
+        return "SAP-ECC".equalsIgnoreCase(s) || "PRIO".equalsIgnoreCase(s);
+    }
+
+
 
     default BackendStatus getBackendStatus() {
         return new BackendStatus(true, "OK");

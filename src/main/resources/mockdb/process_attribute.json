@@ -2,12 +2,12 @@
   {
     "piid": 2000,
     "name": "sender",
-    "value": "ERP01"
+    "value": "SAP-ECC"
   },
   {
     "piid": 2000,
     "name": "receiver",
-    "value": "AP01"
+    "value": "EXT-SYSTEM"
   },
   {
     "piid": 2000,
@@ -17,12 +17,12 @@
   {
     "piid": 2001,
     "name": "sender",
-    "value": "ERP01"
+    "value": "EXT-SYSTEM"
   },
   {
     "piid": 2001,
     "name": "receiver",
-    "value": "AP01"
+    "value": "PRIO"
   },
   {
     "piid": 2001,
