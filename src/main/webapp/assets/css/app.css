@@ -1337,3 +1337,19 @@ tbody tr:hover {
     font-size: 11px;
     color: var(--muted);
 }
+
+
+/* HISTORY SCROLL PATCH */
+#editorHistoryPanel {
+    margin-bottom: 16px;
+}
+
+#editorHistoryList {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+#editorHistoryList .timeline-item {
+    margin-right: 2px;
+}

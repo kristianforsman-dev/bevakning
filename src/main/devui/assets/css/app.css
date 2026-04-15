@@ -1350,3 +1350,19 @@ details.panel[open]{padding-bottom:18px}
 details#historyPanel>summary{list-style:none}
 details#historyPanel>summary::-webkit-details-marker{display:none}
 details#historyPanel[open]{padding-bottom:18px}
+
+
+/* HISTORY SCROLL PATCH */
+#editorHistoryPanel {
+    margin-bottom: 16px;
+}
+
+#editorHistoryList {
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+#editorHistoryList .timeline-item {
+    margin-right: 2px;
+}

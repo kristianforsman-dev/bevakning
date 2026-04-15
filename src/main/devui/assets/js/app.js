@@ -404,6 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!list) return;
 
         list.innerHTML = '';
+        list.scrollTop = 0;
         selectedSpecificDates.forEach(function (dateValue) {
             const tag = document.createElement('div');
             tag.className = 'selected-tag';
@@ -565,6 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!panel || !empty || !list) return;
 
         list.innerHTML = '';
+        list.scrollTop = 0;
 
         if (!ruleId) {
             panel.classList.add('hidden');
@@ -581,7 +583,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         empty.classList.add('hidden');
 
-        rows.slice(0, 8).forEach(function (row) {
+        rows.forEach(function (row) {
             const item = document.createElement('div');
             item.className = 'timeline-item ' + statusClass(row.status || '');
             const isAckEvent = (row.eventType || '') === 'ACKNOWLEDGED';
