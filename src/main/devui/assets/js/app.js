@@ -761,6 +761,17 @@ document.addEventListener('DOMContentLoaded', function () {
         setEditorMode('new');
     }
 
+    function toggleRulePanel(ruleId) {
+        if (selectedRuleId === ruleId && !qs('rulePanel').classList.contains('hidden')) {
+            // panelen är redan öppen för samma regel → stäng den
+            qs('rulePanel').classList.add('hidden');
+            selectedRuleId = null;
+            renderDashboardRows(currentRows); // ta bort highlight
+            return;
+        }
+        openRule(ruleId);
+    }
+
     function openRule(ruleId) {
         openEditorPanel();
         populateFormFromRule(ruleId);
@@ -1132,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!openEl) return;
 
             const openId = openEl.getAttribute('data-open');
-            if (openId) openRule(openId);
+            if (openId) toggleRulePanel(openId);
         });
 
         document.addEventListener('keydown', function (event) {
