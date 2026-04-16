@@ -1422,3 +1422,21 @@ details#historyPanel[open]{padding-bottom:18px}
   background:#3d4254;
   border-radius:4px;
 }
+/* === Scrollbar – Historik (tabell + tidslinje) === */
+#historyWrap,
+#editorHistoryList{
+  max-height:480px;
+  overflow-y:auto;
+
+  /* Firefox / Safari */
+  scrollbar-width: thin;          /* auto | thin | none */
+  scrollbar-color:#3d4254 #1a1e29;/* thumb  track        */
+}
+
+/* Chrome / Edge */
+#historyWrap::-webkit-scrollbar,
+#editorHistoryList::-webkit-scrollbar{ width:8px; }
+#historyWrap::-webkit-scrollbar-track,
+#editorHistoryList::-webkit-scrollbar-track{ background:#1a1e29; }
+#historyWrap::-webkit-scrollbar-thumb,
+#editorHistoryList::-webkit-scrollbar-thumb{ background:#3d4254;border-radius:4px; }
