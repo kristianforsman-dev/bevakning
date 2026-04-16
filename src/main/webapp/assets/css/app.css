@@ -1396,3 +1396,20 @@ tbody tr:hover {
     overflow-y:auto;
 }
 
+
+/* ==== Scrollbar-fix för bevakningstabellen (lagt till 2026-04-16) ==== */
+.table-wrap{
+  overflow:auto;              /* aktivera rullistor */
+  max-height:60vh;            /* eller byt till t.ex. 500px */
+  border-radius:16px;
+  border:1px solid var(--line);
+
+  /* tunnare scrollbars (Firefox) */
+  scrollbar-width:thin;
+  scrollbar-color:var(--line) transparent;
+}
+/* Chrome / Edge / Safari */
+.table-wrap::-webkit-scrollbar       { width:8px;  height:8px; }
+.table-wrap::-webkit-scrollbar-thumb { background:var(--line); border-radius:4px; }
+/* ==== slut på scrollbar-fix ==== */
+
