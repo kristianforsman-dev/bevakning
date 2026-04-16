@@ -1413,3 +1413,25 @@ tbody tr:hover {
 .table-wrap::-webkit-scrollbar-thumb { background:var(--line); border-radius:4px; }
 /* ==== slut på scrollbar-fix ==== */
 
+
+
+/* Scrollbar för Bevakningar */
+#rulesWrap{max-height:340px;overflow-y:auto;}
+
+/* Scrollbar för Historik */
+#historyWrap{max-height:480px;overflow-y:auto;}
+
+/* === Scrollbar – Historik (tabell + tidslinje) === */
+#historyWrap::-webkit-scrollbar,
+#editorHistoryList::-webkit-scrollbar{
+  width:8px;
+}
+#historyWrap::-webkit-scrollbar-track,
+#editorHistoryList::-webkit-scrollbar-track{
+  background:#1a1e29;
+}
+#historyWrap::-webkit-scrollbar-thumb,
+#editorHistoryList::-webkit-scrollbar-thumb{
+  background:#3d4254;
+  border-radius:4px;
+}
