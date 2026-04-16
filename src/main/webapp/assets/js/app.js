@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentSort = { key: 'status', direction: 'desc' };
     let acknowledgeInFlight = false;
     let formDirty = false;
+        function markFormDirty(){ formDirty = true; }
     let localAckOverrides = {}; let uiConfig = { dashboardRefreshSeconds: 5, historyRefreshSeconds: 10, flowStaleWarningMinutes: 10, flowStaleErrorMinutes: 60 }; let dashboardRefreshTimer = null; let historyRefreshTimer = null;
 
     function qs(id) {
@@ -976,7 +977,6 @@ function updateTableScroll() {
         const data = await fetchJson(API.adminConfig, { cache: 'no-store' });
         uiConfig = Object.assign(uiConfig, data);
         box.textContent = JSON.stringify(data, null, 2);
-        startRefreshTimers();
     }
 
     async function refreshAll() {
@@ -997,10 +997,13 @@ function updateTableScroll() {
         const form = qs('ruleForm');
         if (!form) return;
 
-        const body = new URLSearchParams(new FormData(form));
-        const method = editorMode === 'edit' && selectedRuleId ? 'PUT' : 'POST';
-
-        await fetchText(API.rules, {
+        
+const body  = new URLSearchParams(new FormData(form));
+const ruleId = (qs("ruleId") ? qs("ruleId").value.trim() : "");
+const isNew  = !ruleId;
+const method = isNew ? "POST" : "PUT";
+const url    = isNew ? API.rules : `${API.rules}/${encodeURIComponent(ruleId)}`;
+        await fetchText(url, {
             method: method,
             headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
             body: body.toString()
@@ -1074,7 +1077,7 @@ function updateTableScroll() {
 
             // Försök synka dashboard i bakgrunden utan att tappa lokal kvittering
             setTimeout(function () {
-                loadDashboard().catch(function () {});
+                loadDashboard().then(_=>dashboardRefresh()).catch(function () {});
             }, 250);
         } catch (error) {
             acknowledgeInFlight = false;
@@ -1249,3 +1252,5 @@ function updateTableScroll() {
         showBackendBanner(false, 'Frontend-fel: ' + (e && e.message ? e.message : e));
     }
 });
+
+
